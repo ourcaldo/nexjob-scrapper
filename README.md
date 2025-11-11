@@ -45,7 +45,7 @@ This job scraper is designed as a **scalable, multi-source aggregation system** 
 
 ### System Design
 
-![Scraper System Architecture](attached_assets/Scraper%20System%20Architecture_1762889086713.png)
+![Scraper System Architecture](images/Scraper%20System%20Architecture_1762889086713.png)
 
 ### Component Responsibilities
 
