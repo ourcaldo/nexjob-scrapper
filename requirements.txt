@@ -6,3 +6,4 @@ beautifulsoup4
 gspread
 oauth2client
 requests
+python-dotenv
