@@ -244,7 +244,7 @@ class ScraperService:
                         logger.debug(f"Fetching detail for JobStreet job {job_id}...")
                         job_detail = self.jobstreet_client.fetch_job_detail(job_id)
                         
-                        combined_job = {**job, **job_detail}
+                        combined_job = {**job, "detail": job_detail}
                         
                         if self.process_jobstreet_job(combined_job):
                             page_new_jobs += 1

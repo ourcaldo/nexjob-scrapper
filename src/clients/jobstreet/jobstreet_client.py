@@ -110,6 +110,8 @@ class JobStreetClient:
         Returns:
             Dictionary containing:
             - content: Cleaned HTML job description
+            - company_name: Company name from advertiser-name
+            - location: Location from job-detail-location
             - pendidikan: Extracted education requirement
             - pengalaman: Extracted experience requirement
             - gender: Extracted gender requirement
@@ -129,6 +131,8 @@ class JobStreetClient:
             
             job_detail = {
                 "content": self._extract_job_description(soup),
+                "company_name": self._extract_company_name(soup),
+                "location": self._extract_location(soup),
                 "pendidikan": self._extract_education(soup),
                 "pengalaman": self._extract_experience(soup),
                 "gender": self._extract_gender(soup)
@@ -145,8 +149,7 @@ class JobStreetClient:
         """
         Extract the job description HTML from the page.
         
-        The job description is embedded in the HTML body.
-        We look for sections containing job-related content.
+        Uses data-automation="jobAdDetails" to get the complete job description.
         
         Args:
             soup: BeautifulSoup object of the job page
@@ -154,39 +157,53 @@ class JobStreetClient:
         Returns:
             Raw HTML string of the job description
         """
-        content_html = ""
+        job_details = soup.find(attrs={"data-automation": "jobAdDetails"})
         
-        # Find job description sections
-        # JobStreet typically has sections with <strong> headers and <ul> lists
-        for strong in soup.find_all("strong"):
-            section_html = ""
-            section_html += f"<strong>{strong.get_text()}</strong><br />"
+        if job_details:
+            return str(job_details)
+        
+        logger.warning("Could not find job details with data-automation='jobAdDetails'")
+        return ""
+    
+    def _extract_company_name(self, soup: BeautifulSoup) -> str:
+        """
+        Extract company name from the page.
+        
+        Uses data-automation="advertiser-name" to get the company name.
+        
+        Args:
+            soup: BeautifulSoup object of the job page
             
-            # Get the next sibling elements (usually <ul> or <p>)
-            current = strong.next_sibling
-            while current:
-                # Check if current is a Tag (not NavigableString or None)
-                if isinstance(current, Tag):
-                    if current.name in ["ul", "ol", "p", "div"]:
-                        section_html += str(current)
-                    elif current.name == "br":
-                        section_html += str(current)
-                    elif current.name == "strong":
-                        # Stop when we hit the next section
-                        break
-                
-                current = current.next_sibling
+        Returns:
+            Company name as string
+        """
+        advertiser = soup.find(attrs={"data-automation": "advertiser-name"})
+        
+        if advertiser:
+            return advertiser.get_text(strip=True)
+        
+        logger.warning("Could not find company name with data-automation='advertiser-name'")
+        return ""
+    
+    def _extract_location(self, soup: BeautifulSoup) -> str:
+        """
+        Extract location from the page.
+        
+        Uses data-automation="job-detail-location" to get the location.
+        
+        Args:
+            soup: BeautifulSoup object of the job page
             
-            content_html += section_html
+        Returns:
+            Location as string
+        """
+        location_elem = soup.find(attrs={"data-automation": "job-detail-location"})
         
-        # If no content found with <strong> tags, try alternative selectors
-        if not content_html:
-            # Look for common job description containers
-            job_desc = soup.find("div", {"data-automation": "jobDescription"})
-            if job_desc:
-                content_html = str(job_desc)
+        if location_elem:
+            return location_elem.get_text(strip=True)
         
-        return content_html or ""
+        logger.warning("Could not find location with data-automation='job-detail-location'")
+        return ""
     
     def _extract_education(self, soup: BeautifulSoup) -> str:
         """

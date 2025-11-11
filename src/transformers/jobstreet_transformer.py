@@ -33,12 +33,19 @@ class JobStreetTransformer:
         """
         Extract company name from JobStreet data.
         
+        Prioritizes HTML-scraped company_name from detail page,
+        falls back to API data if not available.
+        
         Args:
-            job: Job data from JobStreet API
+            job: Job data from JobStreet API (may include detail data)
             
         Returns:
             Company name
         """
+        html_company = job.get("detail", {}).get("company_name", "")
+        if html_company:
+            return html_company
+        
         return job.get("employer", {}).get("name") or job.get("companyName", "")
     
     @staticmethod
@@ -60,14 +67,27 @@ class JobStreetTransformer:
     @staticmethod
     def extract_location(job: Dict[str, Any]) -> tuple[str, str]:
         """
-        Extract province and city from JobStreet location seoHierarchy.
+        Extract province and city from JobStreet location data.
+        
+        Prioritizes HTML-scraped location from detail page,
+        falls back to API seoHierarchy if not available.
         
         Args:
-            job: Job data from JobStreet API
+            job: Job data from JobStreet API (may include detail data)
             
         Returns:
             Tuple of (province, city)
         """
+        html_location = job.get("detail", {}).get("location", "")
+        if html_location:
+            if "," in html_location:
+                parts = html_location.split(",")
+                city = parts[0].strip()
+                province = parts[1].strip() if len(parts) > 1 else ""
+                return (province, city)
+            else:
+                return ("", html_location.strip())
+        
         locations = job.get("locations", [])
         if not locations:
             return ("", "")
@@ -198,13 +218,14 @@ class JobStreetTransformer:
         salary_min, salary_max = self.parse_salary(job.get("salaryLabel", ""))
         level = self.infer_job_level(job)
         
-        content = job.get("content", "")
+        detail = job.get("detail", {})
+        content = detail.get("content", "")
         if content:
             content = self.content_cleaner.clean_html(content)
         
-        pendidikan = job.get("pendidikan", "Tanpa Minimal Pendidikan")
-        pengalaman = job.get("pengalaman", "1-3 Tahun")
-        gender = job.get("gender", "Laki-laki/Perempuan")
+        pendidikan = detail.get("pendidikan", "Tanpa Minimal Pendidikan")
+        pengalaman = detail.get("pengalaman", "1-3 Tahun")
+        gender = detail.get("gender", "Laki-laki/Perempuan")
         
         tag_items = []
         if category:
