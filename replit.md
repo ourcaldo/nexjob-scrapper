@@ -1,0 +1,227 @@
+# Job Scraper - Multi-Source Job Aggregation System
+
+## Overview
+This is a production-ready Python-based web scraper built with microservice architecture that automatically collects job postings from multiple sources (currently Loker.id, with LinkedIn/Indeed ready for integration) and stores them in a Google Sheets spreadsheet. The scraper runs continuously with 60-minute intervals between scraping cycles.
+
+For complete documentation, see **[README.md](README.md)**
+
+## Project Structure (Multi-Source Architecture)
+```
+src/
+├── config/
+│   ├── settings.py               # Configuration loader
+│   ├── service-account.json      # Google credentials (git-ignored)
+│   └── service-account.json.example  # Template file
+├── clients/
+│   ├── loker/                    # Loker.id source
+│   │   └── loker_client.py       # Loker.id API client
+│   ├── linkedin/                 # LinkedIn source (future)
+│   └── sheets_client.py          # Shared Google Sheets client
+├── services/
+│   └── scraper_service.py        # Main orchestration service
+├── transformers/
+│   ├── job_transformer.py        # Data normalization and mapping
+│   └── content_cleaner.py        # HTML content cleaning
+└── utils/
+    └── rate_limiter.py           # API rate limiting utility
+
+main.py                           # Application entry point
+requirements.txt                  # Python dependencies
+```
+
+## Features
+- Automatic pagination until no more jobs are found (404 response)
+- Duplicate prevention by checking existing job IDs
+- Rate limiting to respect both Loker.id and Google Sheets API limits
+- Data cleaning and normalization (education, salary, experience levels)
+- HTML content parsing and formatting
+- Continuous operation with 60-minute intervals
+- Optional proxy support (nexjob.py only)
+
+## Architecture Highlights
+
+### Microservice Design
+- **Separation of Concerns**: Each module has a single, well-defined responsibility
+- **Dependency Injection**: Services receive dependencies through constructors
+- **Reusable Components**: Rate limiter, transformers, and clients can be used independently
+- **Professional Logging**: Uses Python's logging framework instead of print statements
+- **Type Safety**: Type hints throughout for better code quality
+
+### Key Components
+
+**Settings (config/settings.py)**
+- Centralized configuration management
+- Environment variable loading
+- Proxy configuration builder
+- Configuration validation
+
+**LokerClient (clients/loker_client.py)**
+- Fetches job pages from Loker.id API
+- Handles HTTP requests with optional proxy support
+- Timeout and error handling
+
+**SheetsClient (clients/sheets_client.py)**
+- Google Sheets connection and authentication
+- Read/write operations with rate limiting
+- Duplicate detection via existing ID lookup
+
+**JobTransformer (transformers/job_transformer.py)**
+- Normalizes education, salary, experience, work policy
+- Builds structured job dictionaries
+- Maps data to Google Sheets columns
+
+**ContentCleaner (transformers/content_cleaner.py)**
+- Cleans raw HTML job descriptions
+- Converts to structured format (headings, lists, paragraphs)
+- Removes duplicates and formats consistently
+
+**RateLimiter (utils/rate_limiter.py)**
+- Enforces Google Sheets API quotas
+- Tracks read/write requests per minute
+- Prevents API ban with automatic delays
+
+**ScraperService (services/scraper_service.py)**
+- Orchestrates the entire scraping workflow
+- Coordinates all components
+- Handles pagination and continuous operation
+
+## Recent Changes
+
+### 2025-11-11 - Google Sheets Column Structure Enhancement
+- **Dual-ID System**: Added two-column ID tracking
+  - `internal_id` (Column A): Auto-generated UUID for universal unique tracking
+  - `source_id` (Column B): Original job ID from source for duplicate prevention
+- **English Column Headers**: Translated all column names from Indonesian to English
+  - `sumber_lowongan` → `job_source`
+  - `kategori_pekerjaan` → `job_category`
+  - `lokasi_provinsi` → `province`
+  - `lokasi_kota` → `city`
+  - `pengalaman` → `experience`
+  - `tipe_pekerjaan` → `job_type`
+  - `pendidikan` → `education`
+  - `kebijakan_kerja` → `work_policy`
+  - `tag` → `tags`
+- **Total Columns**: Increased from 19 to 20 columns
+- **Updated Components**:
+  - LokerTransformer: Added uuid import and new column mapping
+  - JobStreetTransformer: Added uuid import and new column mapping
+  - SheetsClient: Updated duplicate detection to read from column B (source_id)
+  - README.md: Updated with new column structure documentation
+
+### 2025-11-11 - Architecture Improvements
+- **Major Refactor**: Transformed monolithic script into microservice architecture
+- Separated concerns into dedicated modules (clients, transformers, services, utils)
+- **Multi-Source Architecture**: Reorganized clients by source (loker/, linkedin/, etc.)
+- **Credentials Loading**: Changed from environment variable to JSON file loading
+  - Credentials now loaded from `src/config/service-account.json`
+  - File is git-ignored for security
+  - Example file provided at `src/config/service-account.json.example`
+- Added professional logging framework
+- Improved error handling with try-catch blocks
+- Fixed edge case bug in experience mapping
+- Made all components independently testable
+- Added comprehensive docstrings
+
+## Required Configuration
+
+### Service Account File (Required)
+- Place your Google Service Account JSON file at `src/config/service-account.json`
+- Copy from `src/config/service-account.json.example` as a template
+- This file is automatically git-ignored for security
+
+### Environment Variables
+
+#### Required:
+- `GOOGLE_SHEETS_URL` - Full URL to the Google Sheets spreadsheet
+
+#### Optional:
+- `SERVICE_ACCOUNT_PATH` - Custom path to service account JSON (default: `src/config/service-account.json`)
+- `PROXY_USERNAME` - Proxy authentication username
+- `PROXY_PASSWORD` - Proxy authentication password
+- `PROXY_HOST` - Proxy server hostname (default: la.residential.rayobyte.com)
+- `PROXY_PORT` - Proxy server port (default: 8000)
+
+## Setup Instructions
+
+### 1. Google Sheets API Setup
+1. Create a Google Cloud project
+2. Enable Google Sheets API and Google Drive API
+3. Create a service account and download the JSON credentials
+4. Share your Google Sheet with the service account email
+
+### 2. Add Service Account Credentials
+1. Copy `src/config/service-account.json.example` to `src/config/service-account.json`
+2. Replace the contents with your actual Google Service Account JSON
+3. The file is automatically git-ignored for security
+
+### 3. Configure Environment Variables
+Set the following in Replit Secrets or .env file:
+- `GOOGLE_SHEETS_URL` - The full URL of your Google Sheets spreadsheet
+
+### 4. Optional Proxy Configuration
+If you want to use proxies (recommended for production to avoid rate limiting):
+- Set `PROXY_USERNAME` and `PROXY_PASSWORD`
+- Optionally customize `PROXY_HOST` and `PROXY_PORT`
+
+## Running the Scraper
+
+```bash
+python main.py
+```
+
+The scraper will automatically:
+1. Connect to Google Sheets
+2. Scrape all available job pages from Loker.id
+3. Check for duplicates and only add new jobs
+4. Wait 60 minutes before the next cycle
+5. Continue indefinitely until stopped
+
+## Data Collected (20 Columns)
+
+### Current Google Sheets Structure
+```
+internal_id | source_id | job_source | link | company_name | job_category | title | content | province | city | experience | job_type | level | salary_min | salary_max | education | work_policy | industry | gender | tags
+```
+
+Each job record includes:
+- **internal_id**: Auto-generated UUID for universal tracking
+- **source_id**: Original job ID from the source (for duplicate detection)
+- **job_source**: Platform name (Loker.id, JobStreet, etc.)
+- **link**: Direct URL to job posting
+- **company_name**: Employer name
+- **job_category**: Job category/field
+- **title**: Job title
+- **content**: Full job description (cleaned HTML)
+- **province**: Location province/state
+- **city**: Location city/district
+- **experience**: Experience requirements (normalized)
+- **job_type**: Employment type (Full Time, Part Time, etc.)
+- **level**: Job level (Entry, Mid, Senior, etc.)
+- **salary_min**: Minimum salary in Rupiah
+- **salary_max**: Maximum salary in Rupiah
+- **education**: Education requirement (normalized: SMA/SMK, D1-D4, S1, S2, S3)
+- **work_policy**: Work arrangement (Remote, On-site, Hybrid)
+- **industry**: Industry sector
+- **gender**: Gender requirement
+- **tags**: Combined tags (comma-separated)
+
+## Rate Limiting
+The scraper implements strict rate limiting to comply with API quotas:
+- Google Sheets Read: 290 requests per minute
+- Google Sheets Write: 55 requests per minute
+- Loker.id: 1 request per second
+- 1 second delay between page requests
+- 1 second delay between sheet writes
+
+## Dependencies
+- Python 3.11+
+- requests - HTTP requests
+- beautifulsoup4 - HTML parsing
+- gspread - Google Sheets API
+- oauth2client - Google authentication
+
+## Notes
+- The scraper runs continuously until manually stopped
+- Graceful shutdown on SIGINT/SIGTERM signals
+- All credentials must be stored in environment variables
+- Never commit credential files to version control

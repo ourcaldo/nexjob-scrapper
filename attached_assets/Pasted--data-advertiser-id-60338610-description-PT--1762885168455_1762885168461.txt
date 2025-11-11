@@ -1,0 +1,131 @@
+{
+  "data": [
+    {
+      "advertiser": {
+        "id": "60338610",
+        "description": "PT. BFI FINANCE INDONESIA, Tbk"
+      },
+      "bulletPoints": [],
+      "branding": {
+
+      },
+      "classifications": [
+        {
+          "classification": {
+            "id": "6008",
+            "description": "Marketing & Communications"
+          },
+          "subclassification": {
+            "id": "6016",
+            "description": "Marketing Communications"
+          }
+        }
+      ],
+      "companyName": "BFI Finance Indonesia",
+      "companyProfileStructuredDataId": 413801,
+      "displayType": "standard",
+      "employer": {
+        "id": "413801",
+        "name": "BFI Finance Indonesia",
+        "companyId": "168556908920494",
+        "companyUrl": "https://id.jobstreet.com/companies/bfi-finance-indonesia-168556908920494"
+      },
+      "id": "81990353",
+      "isFeatured": false,
+      "listingDate": "2025-02-11T05:05:44Z",
+      "listingDateDisplay": "30d+ ago",
+      "locations": [
+        {
+          "label": "Tangerang District, Banten",
+          "countryCode": "ID",
+          "seoHierarchy": [
+            {
+              "contextualName": "Tangerang District Banten"
+            },
+            {
+              "contextualName": "Banten"
+            }
+          ]
+        }
+      ],
+      "roleId": "relationship-executive",
+      "salaryLabel": "",
+      "solMetadata": {
+        "searchRequestToken": "abe5a08c-0b5f-4905-bf8a-34df057454e3",
+        "token": "0~abe5a08c-0b5f-4905-bf8a-34df057454e3",
+        "jobId": "81990353",
+        "section": "MAIN",
+        "sectionRank": 1,
+        "jobAdType": "ORGANIC",
+        "tags": {
+          "mordor__flights": "mordor_727",
+          "mordor__s": "0"
+        }
+      },
+      "teaser": "Memiliki pengalaman 1 tahun dibidang sales/marketing (di bidang multifinance, perbankan, kredit motor, dan leasback BPKB motor) lebih...",
+      "title": "Marketing Agency Relation Executive Tangerang Cikupa",
+      "tracking": "ewogICJ0b2tlbiI6ICJkNmM5YmI4Yy01YTUwLTRlNTQtOGUxYS0xZWQ2MjhiYmM5NjZfMSIKfQ==",
+      "workTypes": [
+        "Full time"
+      ],
+      "workArrangements": {
+        "data": [
+          {
+            "id": "1",
+            "label": {
+              "text": "On-site"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "totalCount": 57944,
+  "info": {
+    "timeTaken": 178,
+    "source": "JobSearch-sm",
+    "experiment": "mordor_727",
+    "newSince": 1762884155
+  },
+  "userQueryId": "API7308551910120055908",
+  "sortModes": [
+    {
+      "isActive": true,
+      "name": "Relevance",
+      "value": "KeywordRelevance"
+    },
+    {
+      "isActive": false,
+      "name": "Date",
+      "value": "ListedDate"
+    }
+  ],
+  "solMetadata": {
+    "requestToken": "abe5a08c-0b5f-4905-bf8a-34df057454e3",
+    "token": "0~abe5a08c-0b5f-4905-bf8a-34df057454e3",
+    "sortMode": "RELEVANCE",
+    "pageSize": 1,
+    "pageNumber": 1,
+    "totalJobCount": 57944,
+    "tags": {
+      "mordor:searchMarket": "UNIFIED_ID",
+      "mordor:result_count_rst": "57944",
+      "mordor:result_count_vec": "0",
+      "mordor:rt": "172",
+      "mordor_vs": "2",
+      "mordor:count_vec": "0",
+      "mordor__flights": "mordor_727",
+      "mordor:count_rst": "57944",
+      "mordor:count_ir": "0",
+      "mordor:result_count_ir": "0"
+    }
+  },
+  "facets": {
+
+  },
+  "searchParams": {
+    "page": "1",
+    "pagesize": "1",
+    "sitekey": "ID"
+  }
+}
