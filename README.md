@@ -12,6 +12,7 @@ A production-ready Python-based job scraping service built with microservice arc
 - [Project Structure](#project-structure)
 - [Technical Stack](#technical-stack)
 - [Setup Guide](#setup-guide)
+- [Environment Configuration](#environment-configuration)
 - [Google Sheets Configuration](#google-sheets-configuration)
 - [How to Use](#how-to-use)
 - [Data Flow & Orchestration](#data-flow--orchestration)
@@ -34,9 +35,9 @@ This job scraper is designed as a **scalable, multi-source aggregation system** 
 - **Continuous Operation**: Runs 24/7 with configurable scraping intervals
 
 ### Current Sources
-- ✅ **Loker.id** - Fully implemented with ~18+ data points per job
+- ✅ **Loker.id** - Fully implemented with 20 data points per job
+- ✅ **JobStreet** - Fully implemented with 20 data points per job (API + HTML scraping)
 - 🔜 **LinkedIn** - Architecture ready, awaiting implementation
-- 🔜 **Indeed** - Architecture ready, awaiting implementation
 
 ---
 
@@ -44,33 +45,7 @@ This job scraper is designed as a **scalable, multi-source aggregation system** 
 
 ### System Design
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         main.py                                 │
-│                    (Application Entry Point)                    │
-└──────────────────────┬──────────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   ScraperService                                │
-│                  (Orchestrator Layer)                           │
-│  • Coordinates all scraping operations                          │
-│  • Manages workflow scheduling                                  │
-│  • Handles error recovery                                       │
-└──┬────────────┬──────────────┬──────────────┬───────────────────┘
-   │            │              │              │
-   ▼            ▼              ▼              ▼
-┌─────────┐ ┌─────────┐ ┌──────────┐ ┌──────────────┐
-│Settings │ │  Loker  │ │ Sheets   │ │ Rate         │
-│Config   │ │ Client  │ │ Client   │ │ Limiter      │
-└─────────┘ └────┬────┘ └──────────┘ └──────────────┘
-                 │
-                 ▼
-         ┌───────────────┐
-         │ Job Transform │
-         │ & Cleaning    │
-         └───────────────┘
-```
+![Scraper System Architecture](attached_assets/Scraper%20System%20Architecture_1762889086713.png)
 
 ### Component Responsibilities
 

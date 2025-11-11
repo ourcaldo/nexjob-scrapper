@@ -25,14 +25,22 @@ class Settings:
         )
         
         self.google_sheets_url: str = os.getenv("GOOGLE_SHEETS_URL", "")
+        self.google_sheets_worksheet: str = os.getenv("GOOGLE_SHEETS_WORKSHEET", "Jobs")
         
-        self.read_requests_per_minute: int = 300
-        self.write_requests_per_minute: int = 60
-        self.total_requests_per_100_seconds: int = 500
+        self.enable_loker: bool = os.getenv("ENABLE_LOKER", "true").lower() == "true"
+        self.enable_jobstreet: bool = os.getenv("ENABLE_JOBSTREET", "false").lower() == "true"
+        self.enable_linkedin: bool = os.getenv("ENABLE_LINKEDIN", "false").lower() == "true"
         
-        self.scrape_interval_seconds: int = 3600
-        self.page_delay_seconds: int = 1
-        self.request_timeout_seconds: int = 30
+        self.max_pages_loker: int = int(os.getenv("MAX_PAGES_LOKER", "0"))
+        self.max_pages_jobstreet: int = int(os.getenv("MAX_PAGES_JOBSTREET", "10"))
+        
+        self.read_requests_per_minute: int = int(os.getenv("READ_REQUESTS_PER_MINUTE", "300"))
+        self.write_requests_per_minute: int = int(os.getenv("WRITE_REQUESTS_PER_MINUTE", "60"))
+        self.total_requests_per_100_seconds: int = int(os.getenv("TOTAL_REQUESTS_PER_100_SECONDS", "500"))
+        
+        self.scrape_interval_seconds: int = int(os.getenv("SCRAPE_INTERVAL_SECONDS", "3600"))
+        self.page_delay_seconds: int = int(os.getenv("PAGE_DELAY_SECONDS", "1"))
+        self.request_timeout_seconds: int = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "30"))
     
     def get_proxies(self) -> Optional[dict]:
         """
@@ -82,6 +90,12 @@ class Settings:
             )
         if not self.google_sheets_url:
             raise ValueError("GOOGLE_SHEETS_URL environment variable not set")
+        
+        if not any([self.enable_loker, self.enable_jobstreet, self.enable_linkedin]):
+            raise ValueError(
+                "At least one job source must be enabled. "
+                "Set ENABLE_LOKER=true or ENABLE_JOBSTREET=true in your .env file"
+            )
 
 
 settings = Settings()

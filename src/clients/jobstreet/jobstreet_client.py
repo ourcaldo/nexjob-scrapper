@@ -9,7 +9,7 @@ This client uses a two-step process:
 import requests
 import logging
 from typing import Optional, Tuple, List, Dict, Any
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import time
 import re
 
@@ -165,13 +165,15 @@ class JobStreetClient:
             # Get the next sibling elements (usually <ul> or <p>)
             current = strong.next_sibling
             while current:
-                if current.name in ["ul", "ol", "p", "div"]:
-                    section_html += str(current)
-                elif current.name == "br":
-                    section_html += str(current)
-                elif current.name == "strong":
-                    # Stop when we hit the next section
-                    break
+                # Check if current is a Tag (not NavigableString or None)
+                if isinstance(current, Tag):
+                    if current.name in ["ul", "ol", "p", "div"]:
+                        section_html += str(current)
+                    elif current.name == "br":
+                        section_html += str(current)
+                    elif current.name == "strong":
+                        # Stop when we hit the next section
+                        break
                 
                 current = current.next_sibling
             

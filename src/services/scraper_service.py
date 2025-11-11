@@ -75,7 +75,7 @@ class ScraperService:
             self.sheets_client = SheetsClient(
                 credentials_dict=credentials_dict,
                 sheet_url=self.settings.google_sheets_url,
-                worksheet_name="Loker.id",
+                worksheet_name=self.settings.google_sheets_worksheet,
                 rate_limiter=self.rate_limiter
             )
             
@@ -100,6 +100,10 @@ class ScraperService:
         Returns:
             True if job was added, False if duplicate or error
         """
+        if not self.sheets_client:
+            logger.error("Sheets client not initialized")
+            return False
+            
         try:
             job_id = str(job["id"])
             
@@ -132,6 +136,10 @@ class ScraperService:
         Returns:
             True if job was added, False if duplicate or error
         """
+        if not self.sheets_client:
+            logger.error("Sheets client not initialized")
+            return False
+            
         try:
             job_id = self.jobstreet_transformer.extract_job_id(job)
             
@@ -153,17 +161,20 @@ class ScraperService:
     
     def scrape_loker_all_pages(self) -> int:
         """
-        Scrape all pages of job listings from Loker.id.
+        Scrape job listings from Loker.id.
+        
+        Respects MAX_PAGES_LOKER setting (0 = unlimited).
         
         Returns:
             Number of new jobs added
         """
         total_new_jobs = 0
         page_num = 1
+        max_pages = self.settings.max_pages_loker if self.settings.max_pages_loker > 0 else float('inf')
         
-        logger.info("Starting Loker.id scraping...")
+        logger.info(f"Starting Loker.id scraping (max {max_pages if max_pages != float('inf') else 'unlimited'} pages)...")
         
-        while True:
+        while page_num <= max_pages:
             logger.info(f"Scraping Loker.id page {page_num}...")
             jobs_data, has_more = self.loker_client.fetch_page(page_num)
             
@@ -263,11 +274,11 @@ class ScraperService:
     
     def run_once(self) -> int:
         """
-        Execute a single scraping run for all sources.
+        Execute a single scraping run for enabled sources.
         
-        Currently scrapes:
-        - Loker.id (all pages)
-        - JobStreet (limited pages for testing)
+        Scrapes from sources based on environment configuration:
+        - Loker.id (if ENABLE_LOKER=true)
+        - JobStreet (if ENABLE_JOBSTREET=true)
         
         Returns:
             Total number of new jobs added from all sources
@@ -279,11 +290,29 @@ class ScraperService:
             return 0
         
         total_new_jobs = 0
+        enabled_sources = []
         
-        loker_jobs = self.scrape_loker_all_pages()
-        total_new_jobs += loker_jobs
+        if self.settings.enable_loker:
+            enabled_sources.append("Loker.id")
+            logger.info("Scraping from Loker.id...")
+            loker_jobs = self.scrape_loker_all_pages()
+            total_new_jobs += loker_jobs
+            logger.info(f"Loker.id: Added {loker_jobs} new jobs")
         
-        logger.info(f"Scraping run completed. Added {total_new_jobs} new jobs")
+        if self.settings.enable_jobstreet:
+            enabled_sources.append("JobStreet")
+            logger.info("Scraping from JobStreet...")
+            max_pages = self.settings.max_pages_jobstreet if self.settings.max_pages_jobstreet > 0 else float('inf')
+            jobstreet_jobs = self.scrape_jobstreet_all_pages(max_pages=int(max_pages) if max_pages != float('inf') else 999999)
+            total_new_jobs += jobstreet_jobs
+            logger.info(f"JobStreet: Added {jobstreet_jobs} new jobs")
+        
+        if not enabled_sources:
+            logger.warning("No job sources are enabled! Check your .env configuration.")
+        else:
+            logger.info(f"Enabled sources: {', '.join(enabled_sources)}")
+        
+        logger.info(f"Scraping run completed. Added {total_new_jobs} new jobs from {len(enabled_sources)} source(s)")
         return total_new_jobs
     
     def run_continuous(self) -> None:
