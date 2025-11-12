@@ -1,0 +1,205 @@
+{
+    "data": {
+        "searchJobsV3": {
+            "__typename": "JobSearchResults",
+            "expInfo": "mgtDstExperimentSearchApplication:base_0605,mgtDstExperimentSearchPaidJob:exp_2_1206,mgtDstExpSearchJobsRemoveFuzzyMatch:exo_0704,mgtMobExperimentExploreLocationExpansion:Group1_082011am,mgtMobExperimentJobCardUI:exp_new_1227",
+            "hasMore": true,
+            "jobsInPage": [{
+                "__typename": "Job",
+                "city": null,
+                "citySubDivision": null,
+                "company": {
+                    "IndustryId": 116,
+                    "__typename": "Company",
+                    "id": "660fdc8d-e505-4449-8800-d7c0aa236b54",
+                    "industry": {
+                        "__typename": "Industry",
+                        "id": 116,
+                        "name": "Logistics and Supply Chain"
+                    },
+                    "isVIP": false,
+                    "logo": "78ee07cbefd95930f5cdd7cb8e954287.png",
+                    "name": "PT.Semesta Sukses Nawasena",
+                    "status": "VERIFIED",
+                    "verificationTier": {
+                        "__typename": "verificationTier",
+                        "type": "LEGAL_DOCUMENTS"
+                    }
+                },
+                "country": {
+                    "__typename": "Country",
+                    "code": "ID",
+                    "name": "Indonesia"
+                },
+                "createdAt": "2025-11-12T02:59:38.841000Z",
+                "educationLevel": "DIPLOMA",
+                "fraudReportFlag": null,
+                "hierarchicalJobCategory": {
+                    "__typename": "HierarchicalJobCategory",
+                    "children": null,
+                    "id": "5a4b25e8-b050-42d0-9e2e-c38edde0c897",
+                    "level": 3,
+                    "name": "Tax Accountant",
+                    "parents": [{
+                        "__typename": "JobCategoryChildAndParent",
+                        "id": "76caa9d7-4cec-4574-9eb4-b5ea9e3de07c",
+                        "level": 1,
+                        "name": "Accounting"
+                    }, {
+                        "__typename": "JobCategoryChildAndParent",
+                        "id": "537763fb-c2e6-4077-aa34-f42fc906d075",
+                        "level": 2,
+                        "name": "Accounting"
+                    }]
+                },
+                "id": "6693dbc2-1041-4a51-9985-c993fe9e83d8",
+                "isActivelyHiring": false,
+                "isApplied": false,
+                "isHot": false,
+                "location": {
+                    "__typename": "HierarchicalLocation",
+                    "administrativeLevelName": "District",
+                    "formattedName": "Cilincing",
+                    "id": "af97a998-2b43-446b-a4ad-cc49c3c3509e",
+                    "latitude": -6.12778,
+                    "level": 4,
+                    "longitude": 106.94444,
+                    "name": "Cilincing",
+                    "parents": [{
+                        "CountryCode": "ID",
+                        "__typename": "LocationParent",
+                        "administrativeLevelName": "City",
+                        "formattedName": "Jakarta Utara",
+                        "id": "ea61f4ac-5864-4b2b-a2c8-aa744a2aafea",
+                        "level": 3,
+                        "name": "Jakarta Utara",
+                        "parents": [{
+                            "__typename": "LocationGrandParent",
+                            "formattedName": "DKI Jakarta",
+                            "level": 2,
+                            "slug": "dki-jakarta"
+                        }, {
+                            "__typename": "LocationGrandParent",
+                            "formattedName": "Indonesia",
+                            "level": 1,
+                            "slug": "indonesia"
+                        }],
+                        "slug": "jakarta-utara"
+                    }, {
+                        "CountryCode": "ID",
+                        "__typename": "LocationParent",
+                        "administrativeLevelName": "Province",
+                        "formattedName": "DKI Jakarta",
+                        "id": "78d63064-78a1-4577-8516-036a6c5e903e",
+                        "level": 2,
+                        "name": "DKI Jakarta",
+                        "parents": [{
+                            "__typename": "LocationGrandParent",
+                            "formattedName": "Indonesia",
+                            "level": 1,
+                            "slug": "indonesia"
+                        }],
+                        "slug": "dki-jakarta"
+                    }, {
+                        "CountryCode": "ID",
+                        "__typename": "LocationParent",
+                        "administrativeLevelName": "Country",
+                        "formattedName": "Indonesia",
+                        "id": "7542a4d7-4324-4f76-ae1f-2e37ffb1198b",
+                        "level": 1,
+                        "name": "Indonesia",
+                        "parents": null,
+                        "slug": "indonesia"
+                    }],
+                    "slug": "cilincing"
+                },
+                "maxYearsOfExperience": 3,
+                "minYearsOfExperience": 1,
+                "salaries": [{
+                    "CurrencyCode": "IDR",
+                    "__typename": "JobSalary",
+                    "id": "c2d7fcf0-0328-42f2-97bf-faa1a077a48f",
+                    "maxAmount": 5500000,
+                    "minAmount": 4400000,
+                    "salaryMode": "MONTH",
+                    "salaryType": "BASIC"
+                }],
+                "salaryEstimate": null,
+                "shouldShowSalary": true,
+                "skills": [{
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "6deb2d03-4be2-45fb-a420-50f0782b829e",
+                        "name": "Financial Analysis"
+                    }
+                }, {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "07f76bd9-6b11-4adf-be43-19de0da3b4dd",
+                        "name": "Tax Reporting"
+                    }
+                }, {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "63666b31-8c50-4429-89ea-8626d23415f5",
+                        "name": "Accounting"
+                    }
+                }, {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "fa4974e1-3d2e-4194-9faa-74458128af03",
+                        "name": "Tax Planning"
+                    }
+                }, {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "8836ed5d-e374-4e6f-8226-cb3fa3ff22a1",
+                        "name": "Tax Accounting"
+                    }
+                }, {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "38ed23f7-69f6-4ed6-a323-29b0bd5086d4",
+                        "name": "Tax Audit"
+                    }
+                }, {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "a5ade1f2-88cc-405b-877a-f61ae8b92cdf",
+                        "name": "CSR"
+                    }
+                }, {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "48fba095-03ee-4720-a5ef-27956668ed54",
+                        "name": "Microsoft Excel"
+                    }
+                }],
+                "source": "NATIVE",
+                "status": "OPEN",
+                "title": "Tax and Accounting Staff",
+                "traceInfo": "e054f41de0d4ff64ecad8e8e3b87e3b5",
+                "type": "FULL_TIME",
+                "updatedAt": "2025-11-12T02:59:40.288000Z",
+                "workArrangementOption": "ONSITE"
+            }]
+        }
+    },
+    "isAuthenticated": false
+}
