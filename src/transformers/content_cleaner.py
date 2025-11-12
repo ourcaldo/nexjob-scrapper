@@ -14,6 +14,7 @@ class ContentCleaner:
     def clean_html(raw_html: str) -> str:
         """
         Cleans and formats HTML content from job postings.
+        Used for JobStreet and other sources that need HTML processing.
         
         Args:
             raw_html: Raw HTML string from job posting
@@ -21,6 +22,9 @@ class ContentCleaner:
         Returns:
             Cleaned and formatted HTML string
         """
+        if not raw_html:
+            return ""
+            
         soup = BeautifulSoup(html.unescape(raw_html), "html.parser")
 
         # Convert all h4 tags to h2 for consistency

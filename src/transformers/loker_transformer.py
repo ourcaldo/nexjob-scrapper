@@ -2,17 +2,13 @@
 Loker.id job data transformation module for normalizing and mapping fields.
 """
 
+import html
 import uuid
 from typing import Dict, Any, List
-from src.transformers.content_cleaner import ContentCleaner
 
 
 class LokerTransformer:
     """Transforms and normalizes job data from Loker.id format."""
-    
-    def __init__(self):
-        """Initialize the transformer with a content cleaner."""
-        self.content_cleaner = ContentCleaner()
     
     @staticmethod
     def map_education(val: str) -> str:
@@ -115,6 +111,7 @@ class LokerTransformer:
     def build_job_content(self, job: Dict[str, Any]) -> str:
         """
         Builds comprehensive job content from Loker.id API fields.
+        Uses API data directly with simple HTML headings.
         
         Args:
             job: Job data from Loker.id API
@@ -127,24 +124,23 @@ class LokerTransformer:
         # Add job description
         if job.get("job_description"):
             parts.append("<h2>Deskripsi Pekerjaan</h2>")
-            parts.append(job["job_description"])
+            parts.append(html.unescape(job["job_description"]))
         
         # Add responsibilities
         if job.get("responsibilities"):
             parts.append("<h2>Tanggung Jawab</h2>")
-            parts.append(job["responsibilities"])
+            parts.append(html.unescape(job["responsibilities"]))
         
         # Add qualifications
         if job.get("qualifications"):
             parts.append("<h2>Kualifikasi</h2>")
-            parts.append(job["qualifications"])
+            parts.append(html.unescape(job["qualifications"]))
         
         # If no HTML fields available, use plain content field wrapped in paragraph
         if not parts and job.get("content"):
             parts.append(f"<p>{job['content']}</p>")
         
-        combined_html = "\n".join(parts)
-        return self.content_cleaner.clean_html(combined_html) if combined_html else ""
+        return "\n".join(parts).strip()
     
     def transform_job(self, job: Dict[str, Any], headers: List[str]) -> List[str]:
         """
