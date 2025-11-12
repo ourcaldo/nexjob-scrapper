@@ -9,9 +9,11 @@ from typing import Set
 from src.config.settings import Settings
 from src.clients.loker.loker_client import LokerClient
 from src.clients.jobstreet.jobstreet_client import JobStreetClient
+from src.clients.glints.glints_client import GlintsClient
 from src.clients.sheets_client import SheetsClient
 from src.transformers.loker_transformer import LokerTransformer
 from src.transformers.jobstreet_transformer import JobStreetTransformer
+from src.transformers.glints_transformer import GlintsTransformer
 from src.utils.rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ class ScraperService:
     """
     Orchestrates the job scraping workflow for multiple sources.
     
-    Coordinates between job source clients (Loker.id, JobStreet), Google Sheets client, 
+    Coordinates between job source clients (Loker.id, JobStreet, Glints), Google Sheets client, 
     and source-specific data transformers to scrape and store job postings.
     """
     
@@ -53,9 +55,17 @@ class ScraperService:
             proxies=settings.get_proxies()
         )
         
+        self.glints_client = GlintsClient(
+            timeout=settings.request_timeout_seconds,
+            page_size=20,
+            country_code="ID",
+            proxies=settings.get_proxies()
+        )
+        
         # Initialize transformers (one per source)
         self.loker_transformer = LokerTransformer()
         self.jobstreet_transformer = JobStreetTransformer()
+        self.glints_transformer = GlintsTransformer()
         
         self.sheets_client = None
         self.existing_ids: Set[str] = set()
@@ -157,6 +167,44 @@ class ScraperService:
             
         except Exception as e:
             logger.error(f"Failed to process JobStreet job {job.get('id')}: {e}")
+            return False
+    
+    def process_glints_job(self, job: dict) -> bool:
+        """
+        Process and store a single Glints job listing if it's not a duplicate.
+        
+        IMPORTANT: Only processes jobs with status === "OPEN"
+        
+        Args:
+            job: Job dictionary from Glints GraphQL API
+            
+        Returns:
+            True if job was added, False if duplicate, closed, or error
+        """
+        if not self.sheets_client:
+            logger.error("Sheets client not initialized")
+            return False
+            
+        try:
+            job_id = str(job.get("id", ""))
+            
+            if job_id in self.existing_ids:
+                return False
+            
+            headers = self.sheets_client.get_headers()
+            row_data = self.glints_transformer.transform_job(job, headers)
+            
+            if row_data is None:
+                return False
+            
+            if self.sheets_client.append_row(row_data):
+                self.existing_ids.add(job_id)
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Failed to process Glints job {job.get('id')}: {e}")
             return False
     
     def scrape_loker_all_pages(self) -> int:
@@ -272,6 +320,80 @@ class ScraperService:
         logger.info(f"JobStreet scraping complete. Total {total_new_jobs} new jobs added")
         return total_new_jobs
     
+    def scrape_glints_all_pages(self, max_pages: int = 10) -> int:
+        """
+        Scrape job listings from Glints GraphQL API.
+        
+        This method:
+        1. Fetches job listings from GraphQL API
+        2. Filters jobs by status === "OPEN"
+        3. Transforms and stores in Google Sheets
+        
+        Args:
+            max_pages: Maximum number of pages to scrape (default: 10)
+            
+        Returns:
+            Number of new jobs added
+        """
+        total_new_jobs = 0
+        page_num = 1
+        
+        logger.info(f"Starting Glints scraping (max {max_pages} pages)...")
+        
+        while page_num <= max_pages:
+            logger.info(f"Scraping Glints page {page_num}...")
+            
+            try:
+                jobs_data, has_more = self.glints_client.fetch_page(page_num)
+                
+                if not jobs_data:
+                    logger.info(f"No more data found at Glints page {page_num}")
+                    break
+                
+                page_new_jobs = 0
+                skipped_closed = 0
+                
+                for job in jobs_data:
+                    try:
+                        job_id = str(job.get("id", ""))
+                        job_status = job.get("status", "")
+                        
+                        if job_status != "OPEN":
+                            skipped_closed += 1
+                            logger.debug(f"Skipping Glints job {job_id} - status is {job_status}")
+                            continue
+                        
+                        if job_id in self.existing_ids:
+                            logger.debug(f"Skipping duplicate Glints job {job_id}")
+                            continue
+                        
+                        if self.process_glints_job(job):
+                            page_new_jobs += 1
+                        
+                    except Exception as e:
+                        logger.error(f"Error processing Glints job: {e}")
+                        continue
+                
+                total_new_jobs += page_new_jobs
+                logger.info(
+                    f"Glints page {page_num} processed. Added {page_new_jobs} new jobs "
+                    f"(skipped {skipped_closed} closed jobs)"
+                )
+                
+                if not has_more:
+                    logger.info("No more Glints pages available")
+                    break
+                
+                page_num += 1
+                time.sleep(self.settings.page_delay_seconds)
+                
+            except Exception as e:
+                logger.error(f"Error scraping Glints page {page_num}: {e}")
+                break
+        
+        logger.info(f"Glints scraping complete. Total {total_new_jobs} new jobs added")
+        return total_new_jobs
+    
     def run_once(self) -> int:
         """
         Execute a single scraping run for enabled sources.
@@ -279,6 +401,7 @@ class ScraperService:
         Scrapes from sources based on environment configuration:
         - Loker.id (if ENABLE_LOKER=true)
         - JobStreet (if ENABLE_JOBSTREET=true)
+        - Glints (if ENABLE_GLINTS=true)
         
         Returns:
             Total number of new jobs added from all sources
@@ -306,6 +429,14 @@ class ScraperService:
             jobstreet_jobs = self.scrape_jobstreet_all_pages(max_pages=int(max_pages) if max_pages != float('inf') else 999999)
             total_new_jobs += jobstreet_jobs
             logger.info(f"JobStreet: Added {jobstreet_jobs} new jobs")
+        
+        if self.settings.enable_glints:
+            enabled_sources.append("Glints")
+            logger.info("Scraping from Glints...")
+            max_pages = self.settings.max_pages_glints if self.settings.max_pages_glints > 0 else float('inf')
+            glints_jobs = self.scrape_glints_all_pages(max_pages=int(max_pages) if max_pages != float('inf') else 999999)
+            total_new_jobs += glints_jobs
+            logger.info(f"Glints: Added {glints_jobs} new jobs")
         
         if not enabled_sources:
             logger.warning("No job sources are enabled! Check your .env configuration.")

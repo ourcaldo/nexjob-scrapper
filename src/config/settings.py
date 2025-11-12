@@ -32,10 +32,12 @@ class Settings:
         
         self.enable_loker: bool = os.getenv("ENABLE_LOKER", "true").lower() == "true"
         self.enable_jobstreet: bool = os.getenv("ENABLE_JOBSTREET", "false").lower() == "true"
+        self.enable_glints: bool = os.getenv("ENABLE_GLINTS", "true").lower() == "true"
         self.enable_linkedin: bool = os.getenv("ENABLE_LINKEDIN", "false").lower() == "true"
         
         self.max_pages_loker: int = int(os.getenv("MAX_PAGES_LOKER", "0"))
         self.max_pages_jobstreet: int = int(os.getenv("MAX_PAGES_JOBSTREET", "10"))
+        self.max_pages_glints: int = int(os.getenv("MAX_PAGES_GLINTS", "10"))
         
         self.read_requests_per_minute: int = int(os.getenv("READ_REQUESTS_PER_MINUTE", "300"))
         self.write_requests_per_minute: int = int(os.getenv("WRITE_REQUESTS_PER_MINUTE", "60"))
@@ -94,10 +96,10 @@ class Settings:
         if not self.google_sheets_url:
             raise ValueError("GOOGLE_SHEETS_URL environment variable not set")
         
-        if not any([self.enable_loker, self.enable_jobstreet, self.enable_linkedin]):
+        if not any([self.enable_loker, self.enable_jobstreet, self.enable_glints, self.enable_linkedin]):
             raise ValueError(
                 "At least one job source must be enabled. "
-                "Set ENABLE_LOKER=true or ENABLE_JOBSTREET=true in your .env file"
+                "Set ENABLE_LOKER=true, ENABLE_JOBSTREET=true, or ENABLE_GLINTS=true in your .env file"
             )
 
 
