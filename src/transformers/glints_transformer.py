@@ -276,11 +276,16 @@ class GlintsTransformer:
         detail = job.get("detail", {})
         
         if detail and detail.get("descriptionJsonString"):
+            if logger:
+                logger.debug(f"Using detail API description for job {job.get('id', 'unknown')}")
             description_html = GlintsTransformer.parse_json_description(
                 detail.get("descriptionJsonString", "")
             )
             if description_html:
                 parts.append(description_html)
+        else:
+            if logger:
+                logger.debug(f"Detail API description not available for job {job.get('id', 'unknown')}, using fallback")
         
         company = detail.get("company", {}) or job.get("company", {})
         if company:

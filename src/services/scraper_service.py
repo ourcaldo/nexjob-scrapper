@@ -373,7 +373,12 @@ class ScraperService:
                         trace_info = job.get("traceInfo", "")
                         job_detail = self.glints_client.fetch_job_detail(job_id, trace_info)
                         
-                        combined_job = {**job, "detail": job_detail}
+                        if job_detail:
+                            logger.debug(f"Successfully fetched detail for job {job_id}")
+                        else:
+                            logger.warning(f"Failed to fetch detail for job {job_id}, using search data only")
+                        
+                        combined_job = {**job, "detail": job_detail or {}}
                         
                         if self.process_glints_job(combined_job):
                             page_new_jobs += 1
