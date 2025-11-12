@@ -1,7 +1,7 @@
 # Job Scraper - Multi-Source Job Aggregation System
 
 ## Overview
-This is a production-ready Python-based web scraper built with microservice architecture that automatically collects job postings from multiple sources (currently Loker.id, with LinkedIn/Indeed ready for integration) and stores them in a Google Sheets spreadsheet. The scraper runs continuously with 60-minute intervals between scraping cycles.
+This is a production-ready Python-based web scraper built with microservice architecture that automatically collects job postings from multiple sources (Loker.id, JobStreet, and Glints) and stores them in a Google Sheets spreadsheet. The scraper runs continuously with 60-minute intervals between scraping cycles.
 
 For complete documentation, see **[README.md](README.md)**
 
@@ -15,12 +15,19 @@ src/
 ├── clients/
 │   ├── loker/                    # Loker.id source
 │   │   └── loker_client.py       # Loker.id API client
+│   ├── jobstreet/                # JobStreet source
+│   │   └── jobstreet_client.py   # JobStreet API + HTML scraper
+│   ├── glints/                   # Glints source
+│   │   ├── glints_client.py      # Glints GraphQL API client
+│   │   └── GLINTS_ORCHESTRATION.md  # Complete Glints documentation
 │   ├── linkedin/                 # LinkedIn source (future)
 │   └── sheets_client.py          # Shared Google Sheets client
 ├── services/
 │   └── scraper_service.py        # Main orchestration service
 ├── transformers/
-│   ├── job_transformer.py        # Data normalization and mapping
+│   ├── loker_transformer.py      # Loker.id data transformation
+│   ├── jobstreet_transformer.py  # JobStreet data transformation
+│   ├── glints_transformer.py     # Glints data transformation
 │   └── content_cleaner.py        # HTML content cleaning
 └── utils/
     └── rate_limiter.py           # API rate limiting utility
@@ -87,6 +94,22 @@ requirements.txt                  # Python dependencies
 
 ## Recent Changes
 
+### 2025-11-12 - Glints Integration with Two-Step GraphQL API
+- **Complete Glints Support**: Added full integration with Glints job platform
+  - **Two-Step API Architecture**: 
+    - Step 1: Search API (`searchJobsV3`) - Fetches paginated job list
+    - Step 2: Detail API (`getJobDetailsById`) - Fetches complete job details for each job
+  - **Status Filtering**: Only processes jobs with `status === "OPEN"`
+  - **DraftJS Description Parsing**: Converts Glints' JSON descriptions to HTML
+  - **Robust Error Handling**: Graceful fallback when detail fetch fails
+- **New Components**:
+  - `GlintsClient`: GraphQL API client with dual endpoints
+  - `GlintsTransformer`: Data normalization with education, experience, and work arrangement mapping
+  - `GLINTS_ORCHESTRATION.md`: Complete technical documentation
+- **Environment Variables**:
+  - `ENABLE_GLINTS` - Enable/disable Glints scraping (default: true)
+  - `MAX_PAGES_GLINTS` - Limit pages to scrape (default: 10, 0 = unlimited)
+
 ### 2025-11-11 - Google Sheets Column Structure Enhancement
 - **Dual-ID System**: Added two-column ID tracking
   - `internal_id` (Column A): Auto-generated UUID for universal unique tracking
@@ -134,12 +157,20 @@ requirements.txt                  # Python dependencies
 #### Required:
 - `GOOGLE_SHEETS_URL` - Full URL to the Google Sheets spreadsheet
 
-#### Optional:
+#### Optional - General:
 - `SERVICE_ACCOUNT_PATH` - Custom path to service account JSON (default: `src/config/service-account.json`)
 - `PROXY_USERNAME` - Proxy authentication username
 - `PROXY_PASSWORD` - Proxy authentication password
 - `PROXY_HOST` - Proxy server hostname (default: la.residential.rayobyte.com)
 - `PROXY_PORT` - Proxy server port (default: 8000)
+
+#### Optional - Source Control:
+- `ENABLE_LOKER` - Enable Loker.id scraping (default: true)
+- `ENABLE_JOBSTREET` - Enable JobStreet scraping (default: false)
+- `ENABLE_GLINTS` - Enable Glints scraping (default: true)
+- `MAX_PAGES_LOKER` - Max pages for Loker.id (default: 0 = unlimited)
+- `MAX_PAGES_JOBSTREET` - Max pages for JobStreet (default: 10)
+- `MAX_PAGES_GLINTS` - Max pages for Glints (default: 10)
 
 ## Setup Instructions
 
