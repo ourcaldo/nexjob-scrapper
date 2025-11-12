@@ -1,0 +1,218 @@
+{
+    "data": {
+        "getJobById": {
+            "CityId": 0,
+            "CountryCode": "ID",
+            "__typename": "Job",
+            "acceptsForeignApplications": false,
+            "benefits": null,
+            "canUserApplyWithReason": {
+                "__typename": "canUserApplyWithReason",
+                "canApply": true,
+                "reason": ""
+            },
+            "city": null,
+            "citySubDivision": null,
+            "company": {
+                "IndustryId": 96,
+                "__typename": "Company",
+                "address": "Gedung Bursa Efek Tower 1 3F, Unit 304, SCBD - South Jakarta 12190",
+                "descriptionJsonString": "{\"blocks\":[{\"key\":\"85fnr\",\"data\":{},\"text\":\"MSBU was founded in 2019 as a specialist of on-demand IT staffing & recruitment services. Our competitive advantages lie in our SLA commitment, ‘Client & Candidate Success’ oriented, and our recruitment model powered by a Crowdsourcing Ecosystem has been proven through our exemplary track record in filling the most challenging IT positions for startup and enterprise clients alike. Our expertise in tech recruiting within the area of Software, Mobile, Data, Infrastructure, Cybersecurity Product + UX, and Functional results in a high-satisfaction of consultative approach for both our clients and candidates.\",\"type\":\"unstyled\",\"depth\":0,\"entityRanges\":[],\"inlineStyleRanges\":[]},{\"key\":\"4ebg\",\"data\":{},\"text\":\"We’re also the proud creators of the Freelance Tech Recruiter Community (FRC), our crowdsourcing tech recruitment  ecosystem that connects over 250 tech recruiters  to meet, learn, and earn amazing rewards.\",\"type\":\"unstyled\",\"depth\":0,\"entityRanges\":[],\"inlineStyleRanges\":[]}],\"entityMap\":{}}",
+                "id": "96770699-c989-4cea-9c33-ab0d2d12c888",
+                "industry": {
+                    "__typename": "Industry",
+                    "id": 96,
+                    "name": "Information Technology and Services"
+                },
+                "isApprovedToTalentHunt": false,
+                "isVIP": true,
+                "logo": "0af20003e1180b1f217ea0ea4772ecb9.png",
+                "name": "MSBU",
+                "photosJsonString": "[\"546dcaefd28138c148cd08c0e95625a4.jpg\",\"479a0245ce48c1aefde232b7517e8679.jpg\",\"de45b789a459294f9515ca4a914562b2.jpg\",\"f8092841f76b9571d1150967ea638527.jpg\"]",
+                "size": "BETWEEN_51_AND_200",
+                "socialMediaSitesJsonString": "{\"twitter\":\"msbuindonesia\",\"facebook\":\"msbu.it\",\"linkedin\":\"msbu\",\"instagram\":\"msbu.it\"}",
+                "status": "VERIFIED",
+                "verificationTier": {
+                    "__typename": "verificationTier",
+                    "type": "LEGAL_DOCUMENTS"
+                },
+                "website": "https://www.msbu.co.id"
+            },
+            "country": {
+                "__typename": "Country",
+                "code": "ID",
+                "name": "Indonesia"
+            },
+            "createdAt": "2025-11-10T07:19:51.008000Z",
+            "creator": {
+                "__typename": "Creator",
+                "id": "799f01ff-bd7a-438e-b54b-03b0b11ea0cf",
+                "image": "",
+                "isHighResponseRate": false,
+                "lastSeen": "2025-11-12T03:04:36Z",
+                "name": "Andrian Putra Raharja",
+                "online": false
+            },
+            "creatorResponseTime": 0,
+            "descriptionJsonString": "{\"blocks\":[{\"data\":{},\"text\":\"Ingin cari penghasilan sampingan sebagai Tech Recruiter?\\n\\nMari gabung dengan komunitas freelance tech recruiter kami di MSBU. \",\"type\":\"unstyled\",\"depth\":0,\"entityRanges\":[],\"inlineStyleRanges\":[],\"key\":\"2r9qk\"},{\"key\":\"5j98c\",\"data\":{},\"text\":\" \\nCara kerjanya simple. Kami akan berikan frequent update terkait lowongan-lowongan yang sedang open di MSBU, jika anda punya kandidat terkait, langsung submit di sistem kami, dan apabila kandidat anda berhasil kami hire, reward akan kami langsung berikan FULL didepan kepada anda terhitung hari pertama kandidat bekerja.\",\"type\":\"unstyled\",\"depth\":0,\"entityRanges\":[],\"inlineStyleRanges\":[]},{\"depth\":0,\"entityRanges\":[],\"inlineStyleRanges\":[{\"style\":\"BOLD\",\"length\":12,\"offset\":1}],\"key\":\"tl5u\",\"data\":{},\"text\":\"\\nRequirements\",\"type\":\"unstyled\"},{\"inlineStyleRanges\":[],\"key\":\"d0kl\",\"data\":{},\"text\":\"Minimal Pendidikan S1 sederajat\",\"type\":\"unordered-list-item\",\"depth\":0,\"entityRanges\":[]},{\"data\":{},\"text\":\"Pengalaman sebagai tech recruiter lebih diutamakan\",\"type\":\"unordered-list-item\",\"depth\":0,\"entityRanges\":[],\"inlineStyleRanges\":[],\"key\":\"6ec8r\"},{\"data\":{},\"text\":\"Reward per hire IDR 500k - IDR 2juta tergantung level experience dan role\",\"type\":\"unordered-list-item\",\"depth\":0,\"entityRanges\":[],\"inlineStyleRanges\":[],\"key\":\"ul67\"},{\"inlineStyleRanges\":[{\"style\":\"BOLD\",\"length\":9,\"offset\":17}],\"key\":\"c43qt\",\"data\":{},\"text\":\"100% REMOTE (WFA)\\n\\n\\nNote: \",\"type\":\"unordered-list-item\",\"depth\":0,\"entityRanges\":[]},{\"entityRanges\":[],\"inlineStyleRanges\":[],\"key\":\"5a8en\",\"data\":{},\"text\":\"Bagi yang sebelumnya pernah apply namun belum lolos, silahkan boleh apply kembali.\\n\\n\",\"type\":\"unordered-list-item\",\"depth\":0}],\"entityMap\":{}}",
+            "educationLevel": "BACHELOR_DEGREE",
+            "expInfo": "mgtOneTapApplyVIPJobs:B",
+            "expiryDate": "2025-12-11",
+            "externalApplyURL": null,
+            "fraudReportFlag": null,
+            "gender": null,
+            "hierarchicalJobCategory": {
+                "HierarchicalJobCategoryId": "9814887f-d9cf-4ae4-9bf6-45184b3e645a",
+                "__typename": "HierarchicalJobCategory",
+                "level": 3,
+                "name": "Recruiter",
+                "parents": [
+                    {
+                        "HierarchicalJobCategoryId": "6baf7fce-1d94-462c-a7f9-1077f2496b27",
+                        "__typename": "JobCategoryChildAndParent",
+                        "level": 2,
+                        "name": "Human Resources"
+                    },
+                    {
+                        "HierarchicalJobCategoryId": "f1efc1a5-79e7-48e2-8adc-50dd141fe6e9",
+                        "__typename": "JobCategoryChildAndParent",
+                        "level": 1,
+                        "name": "Administrative & HR"
+                    }
+                ]
+            },
+            "id": "57f8f69b-843f-4d87-8bf0-9c74aba3b698",
+            "interviewProcessJsonString": null,
+            "isActivelyHiring": true,
+            "isCoverLetterMandatory": false,
+            "isEducationRequiredForCandidate": false,
+            "isHot": true,
+            "isLocationRequiredForCandidate": false,
+            "location": {
+                "__typename": "HierarchicalLocation",
+                "administrativeLevelName": "District",
+                "formattedName": "Kebayoran Lama",
+                "id": "c1892819-79bf-4f43-bdc6-4169cca33e84",
+                "latitude": -6.24861,
+                "level": 4,
+                "longitude": 106.77778,
+                "name": "Kebayoran Lama",
+                "parents": [
+                    {
+                        "CountryCode": "ID",
+                        "__typename": "LocationParent",
+                        "administrativeLevelName": "City",
+                        "formattedName": "Jakarta Selatan",
+                        "id": "078b37b2-e791-4739-958e-c29192e5df3e",
+                        "level": 3,
+                        "name": "Jakarta Selatan",
+                        "parents": [
+                            {
+                                "__typename": "LocationGrandParent",
+                                "formattedName": "DKI Jakarta",
+                                "level": 2,
+                                "slug": "dki-jakarta"
+                            },
+                            {
+                                "__typename": "LocationGrandParent",
+                                "formattedName": "Indonesia",
+                                "level": 1,
+                                "slug": "indonesia"
+                            }
+                        ],
+                        "slug": "jakarta-selatan"
+                    },
+                    {
+                        "CountryCode": "ID",
+                        "__typename": "LocationParent",
+                        "administrativeLevelName": "Province",
+                        "formattedName": "DKI Jakarta",
+                        "id": "78d63064-78a1-4577-8516-036a6c5e903e",
+                        "level": 2,
+                        "name": "DKI Jakarta",
+                        "parents": [
+                            {
+                                "__typename": "LocationGrandParent",
+                                "formattedName": "Indonesia",
+                                "level": 1,
+                                "slug": "indonesia"
+                            }
+                        ],
+                        "slug": "dki-jakarta"
+                    },
+                    {
+                        "CountryCode": "ID",
+                        "__typename": "LocationParent",
+                        "administrativeLevelName": "Country",
+                        "formattedName": "Indonesia",
+                        "id": "7542a4d7-4324-4f76-ae1f-2e37ffb1198b",
+                        "level": 1,
+                        "name": "Indonesia",
+                        "parents": null,
+                        "slug": "indonesia"
+                    }
+                ],
+                "slug": "kebayoran-lama"
+            },
+            "maxAge": null,
+            "maxYearsOfExperience": 3,
+            "minAge": null,
+            "minYearsOfExperience": 1,
+            "oneTapApply": {
+                "__typename": "oneTapApply",
+                "isEligible": false
+            },
+            "resumeRequiredStatus": "OPTIONAL",
+            "salaries": [
+                {
+                    "CurrencyCode": "IDR",
+                    "__typename": "JobSalary",
+                    "id": "c9a59327-f814-43d0-8ff8-de68bdadf6b1",
+                    "maxAmount": 2000000,
+                    "minAmount": 1000000,
+                    "salaryMode": "MONTH",
+                    "salaryType": "BASIC"
+                }
+            ],
+            "salaryEstimate": null,
+            "shouldShowBenefits": true,
+            "shouldShowSalary": true,
+            "skills": [
+                {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "f455b619-93d1-4589-b873-a7fe71832cbb",
+                        "name": "LinkedIn Recruiter"
+                    }
+                },
+                {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "bbad3092-9c7f-450d-9fe1-fee8e4bca0a3",
+                        "name": "Recruitment"
+                    }
+                },
+                {
+                    "__typename": "Skill",
+                    "mustHave": true,
+                    "skill": {
+                        "__typename": "SkillDetail",
+                        "id": "669e2a0a-ad8a-4fa3-947c-0e0cfcd85d42",
+                        "name": "Sourcing Skills"
+                    }
+                }
+            ],
+            "status": "OPEN",
+            "title": "Freelance Tech Recruiter",
+            "traceInfo": "01dfe11080d251d39e74d15f4b6fd084",
+            "type": "PROJECT_BASED",
+            "updatedAt": "2025-11-11T08:49:38.501000Z",
+            "workArrangementOption": "REMOTE"
+        }
+    },
+    "isAuthenticated": true
+}

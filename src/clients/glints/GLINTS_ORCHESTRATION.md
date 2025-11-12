@@ -8,20 +8,30 @@ Complete guide to understanding how we scrape, extract, transform, and store job
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    GLINTS GRAPHQL API ENDPOINT                      │
+│               STEP 1: SEARCH API (searchJobsV3)                     │
 │  https://glints.com/api/v2-alc/graphql?op=searchJobsV3             │
 │  Method: POST with GraphQL query payload                           │
+│  Returns: List of jobs with basic info + pagination                │
 └──────────────────────────┬──────────────────────────────────────────┘
-                           │ GraphQL Response with Job Data
+                           │ Job list with IDs
+                           ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│               STEP 2: DETAIL API (getJobDetailsById)                │
+│  https://glints.com/api/v2-alc/graphql?op=getJobDetailsById        │
+│  Method: POST with job ID in GraphQL payload                       │
+│  Returns: Complete job details (description, benefits, etc.)       │
+└──────────────────────────┬──────────────────────────────────────────┘
+                           │ Complete job data (search + detail)
                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      GLINTS CLIENT                                  │
-│  • Sends GraphQL POST requests with pagination                     │
-│  • Returns complete job data in one request (no HTML scraping!)    │
+│  • Sends GraphQL POST requests with pagination (search)            │
+│  • For each job, fetches detailed info (detail)                    │
+│  • Combines search data + detail data                              │
 │  • Checks hasMore field for pagination                             │
-│  • Returns: List[Dict] - Array of complete job objects             │
+│  • Returns: List[Dict] - Array of combined job objects             │
 └──────────────────────────┬──────────────────────────────────────────┘
-                           │ Complete job data (no detail fetch needed)
+                           │ Complete combined job data
                            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                   JOB TRANSFORMER                                   │
@@ -449,13 +459,50 @@ skills_str = ", ".join(all_skills[:10])
 
 ---
 
-### 10. **Job Description (CONSTRUCTED FROM DATA)** 📝
+### 10. **Job Description (FROM DETAIL API)** 📝
 
-**Challenge:** Glints GraphQL API does **NOT** provide detailed HTML job descriptions.
+**Source:** Detail API provides `descriptionJsonString` in DraftJS JSON format.
 
-**Solution:** Build structured HTML from available data fields.
+**Detail API Endpoint:** `https://glints.com/api/v2-alc/graphql?op=getJobDetailsById`
 
-**Construction Logic:**
+**Detail API Payload:**
+```json
+{
+  "operationName": "getJobDetailsById",
+  "variables": {
+    "opportunityId": "<job_id>",
+    "traceInfo": "<trace_from_search>",
+    "source": "Explore"
+  },
+  "query": "query getJobDetailsById($opportunityId: String!, ...) { ... }"
+}
+```
+
+**Detail API Response Contains:**
+- `descriptionJsonString` - Full job description in DraftJS JSON format
+- `benefits` - Job benefits
+- `interviewProcessJsonString` - Interview process
+- Complete company info (website, address, description, photos, social media)
+
+**JSON Description Parsing:**
+```python
+# Parse DraftJS JSON to HTML
+desc_data = json.loads(detail["descriptionJsonString"])
+blocks = desc_data.get("blocks", [])
+
+for block in blocks:
+    text = block.get("text", "")
+    block_type = block.get("type", "unstyled")
+    
+    if block_type == "header-two":
+        html_parts.append(f"<h2>{text}</h2>")
+    elif block_type == "unordered-list-item":
+        html_parts.append(f"<li>{text}</li>")
+    else:
+        html_parts.append(f"<p>{text}</p>")
+```
+
+**Fallback Construction Logic (if detail API fails):**
 ```python
 parts = []
 
@@ -655,7 +702,15 @@ The final row data contains these columns (in order):
        │   │   └─→ If exists: SKIP (duplicate)
        │   │   └─→ If new: CONTINUE
        │   │
-       │   ├─→ GlintsTransformer.transform_job(job, headers)
+       │   ├─→ GlintsClient.fetch_job_detail(job_id, trace_info)
+       │   │   └─→ POST https://glints.com/api/v2-alc/graphql?op=getJobDetailsById
+       │   │   └─→ Payload: job ID + trace info
+       │   │   └─→ Returns: Complete job detail with description
+       │   │
+       │   ├─→ Combine search data + detail data
+       │   │   └─→ combined_job = {**job, "detail": job_detail}
+       │   │
+       │   ├─→ GlintsTransformer.transform_job(combined_job, headers)
        │   │   ├─→ Filter by status === "OPEN"
        │   │   ├─→ map_education()
        │   │   ├─→ map_experience()
@@ -698,7 +753,7 @@ The final row data contains these columns (in order):
 | **Job Description** | HTML in API | Scrape HTML page | Build from data ⚠️ |
 | **Work Policy** | Boolean | Structured field | Structured field ✅ |
 | **Location** | Simple array | Nested hierarchy | Nested hierarchy |
-| **Requests per Job** | 1 request | 2 requests | 1 request ✅ |
+| **Requests per Job** | 1 request | 2 requests | 2 requests (search + detail) |
 | **Status Filtering** | Not needed | Not needed | REQUIRED ⚠️ |
 | **Parsing Complexity** | Low | High | Medium |
 

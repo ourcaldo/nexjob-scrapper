@@ -325,9 +325,11 @@ class ScraperService:
         Scrape job listings from Glints GraphQL API.
         
         This method:
-        1. Fetches job listings from GraphQL API
-        2. Filters jobs by status === "OPEN"
-        3. Transforms and stores in Google Sheets
+        1. Fetches job listings from search GraphQL API
+        2. For each job, fetches detailed information via detail API
+        3. Filters jobs by status === "OPEN"
+        4. Combines search data with detail data
+        5. Transforms and stores in Google Sheets
         
         Args:
             max_pages: Maximum number of pages to scrape (default: 10)
@@ -367,8 +369,16 @@ class ScraperService:
                             logger.debug(f"Skipping duplicate Glints job {job_id}")
                             continue
                         
-                        if self.process_glints_job(job):
+                        logger.debug(f"Fetching detail for Glints job {job_id}...")
+                        trace_info = job.get("traceInfo", "")
+                        job_detail = self.glints_client.fetch_job_detail(job_id, trace_info)
+                        
+                        combined_job = {**job, "detail": job_detail}
+                        
+                        if self.process_glints_job(combined_job):
                             page_new_jobs += 1
+                        
+                        time.sleep(2)
                         
                     except Exception as e:
                         logger.error(f"Error processing Glints job: {e}")

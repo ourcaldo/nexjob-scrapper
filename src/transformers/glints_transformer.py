@@ -216,24 +216,109 @@ class GlintsTransformer:
         return ", ".join(all_skills[:10])
     
     @staticmethod
+    def parse_json_description(description_json: str) -> str:
+        """
+        Parse Glints JSON description format to HTML.
+        
+        Glints stores descriptions as DraftJS JSON format.
+        
+        Args:
+            description_json: JSON string containing description blocks
+            
+        Returns:
+            HTML formatted description
+        """
+        try:
+            import json
+            desc_data = json.loads(description_json)
+            blocks = desc_data.get("blocks", [])
+            
+            html_parts = []
+            for block in blocks:
+                text = block.get("text", "").strip()
+                if not text:
+                    continue
+                
+                block_type = block.get("type", "unstyled")
+                
+                if block_type == "header-one":
+                    html_parts.append(f"<h1>{text}</h1>")
+                elif block_type == "header-two":
+                    html_parts.append(f"<h2>{text}</h2>")
+                elif block_type == "header-three":
+                    html_parts.append(f"<h3>{text}</h3>")
+                elif block_type == "unordered-list-item":
+                    html_parts.append(f"<li>{text}</li>")
+                elif block_type == "ordered-list-item":
+                    html_parts.append(f"<li>{text}</li>")
+                else:
+                    html_parts.append(f"<p>{text}</p>")
+            
+            return "\n".join(html_parts)
+        except:
+            return description_json
+    
+    @staticmethod
     def build_job_description(job: Dict[str, Any]) -> str:
         """
         Build a formatted job description from Glints data.
         
-        Since Glints API doesn't provide detailed HTML description,
-        we construct a structured description from available fields.
+        Prioritizes detail API description, falls back to constructed description.
         
         Args:
-            job: Job data from Glints API
+            job: Combined job data (search + detail) from Glints API
             
         Returns:
             HTML formatted job description
         """
         parts = []
         
+        detail = job.get("detail", {})
+        
+        if detail and detail.get("descriptionJsonString"):
+            description_html = GlintsTransformer.parse_json_description(
+                detail.get("descriptionJsonString", "")
+            )
+            if description_html:
+                parts.append(description_html)
+        
+        company = detail.get("company", {}) or job.get("company", {})
+        if company:
+            company_desc = company.get("descriptionJsonString", "")
+            if company_desc:
+                parts.append("<h2>About the Company</h2>")
+                company_html = GlintsTransformer.parse_json_description(company_desc)
+                parts.append(company_html)
+            
+            website = company.get("website", "")
+            if website:
+                parts.append(f"<p><strong>Company Website:</strong> <a href='{website}'>{website}</a></p>")
+            
+            address = company.get("address", "")
+            if address:
+                parts.append(f"<p><strong>Address:</strong> {address}</p>")
+        
+        skills_data = detail.get("skills", []) or job.get("skills", [])
+        if skills_data:
+            parts.append("<h2>Required Skills</h2>")
+            parts.append("<ul>")
+            for skill_item in skills_data[:15]:
+                skill_name = skill_item.get("skill", {}).get("name", "")
+                if skill_name:
+                    must_have = " (Required)" if skill_item.get("mustHave") else ""
+                    parts.append(f"<li>{skill_name}{must_have}</li>")
+            parts.append("</ul>")
+        
+        benefits = detail.get("benefits")
+        if benefits:
+            parts.append("<h2>Benefits</h2>")
+            parts.append(f"<p>{benefits}</p>")
+        
+        if parts:
+            return "\n".join(parts)
+        
         parts.append("<h2>Job Information</h2>")
         
-        company = job.get("company", {})
         if company:
             industry = company.get("industry", {}).get("name", "")
             if industry:
@@ -247,17 +332,6 @@ class GlintsTransformer:
         education = job.get("educationLevel", "")
         if education:
             parts.append(f"<p><strong>Education Level:</strong> {education}</p>")
-        
-        skills_data = job.get("skills", [])
-        if skills_data:
-            parts.append("<h2>Required Skills</h2>")
-            parts.append("<ul>")
-            for skill_item in skills_data[:15]:
-                skill_name = skill_item.get("skill", {}).get("name", "")
-                if skill_name:
-                    must_have = " (Required)" if skill_item.get("mustHave") else ""
-                    parts.append(f"<li>{skill_name}{must_have}</li>")
-            parts.append("</ul>")
         
         category = job.get("hierarchicalJobCategory", {})
         if category:

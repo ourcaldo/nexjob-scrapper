@@ -14,6 +14,165 @@ class GlintsClient:
     
     BASE_URL = "https://glints.com/api/v2-alc/graphql"
     
+    DETAIL_QUERY = """query getJobDetailsById($opportunityId: String!, $traceInfo: String, $source: String) {
+  getJobById(id: $opportunityId, traceInfo: $traceInfo, source: $source) {
+    id
+    title
+    status
+    type
+    workArrangementOption
+    createdAt
+    updatedAt
+    expiryDate
+    descriptionJsonString
+    interviewProcessJsonString
+    educationLevel
+    minYearsOfExperience
+    maxYearsOfExperience
+    gender
+    minAge
+    maxAge
+    isActivelyHiring
+    isHot
+    isCoverLetterMandatory
+    isEducationRequiredForCandidate
+    isLocationRequiredForCandidate
+    shouldShowSalary
+    shouldShowBenefits
+    benefits
+    externalApplyURL
+    fraudReportFlag
+    resumeRequiredStatus
+    CityId
+    CountryCode
+    company {
+      id
+      name
+      logo
+      status
+      isVIP
+      IndustryId
+      website
+      address
+      size
+      descriptionJsonString
+      photosJsonString
+      socialMediaSitesJsonString
+      isApprovedToTalentHunt
+      industry {
+        id
+        name
+        __typename
+      }
+      verificationTier {
+        type
+        __typename
+      }
+      __typename
+    }
+    country {
+      code
+      name
+      __typename
+    }
+    city {
+      id
+      name
+      __typename
+    }
+    citySubDivision {
+      id
+      name
+      __typename
+    }
+    location {
+      id
+      name
+      formattedName
+      level
+      administrativeLevelName
+      latitude
+      longitude
+      slug
+      parents {
+        CountryCode
+        id
+        name
+        formattedName
+        level
+        administrativeLevelName
+        slug
+        parents {
+          formattedName
+          level
+          slug
+          __typename
+        }
+        __typename
+      }
+      __typename
+    }
+    hierarchicalJobCategory {
+      HierarchicalJobCategoryId
+      level
+      name
+      parents {
+        HierarchicalJobCategoryId
+        level
+        name
+        __typename
+      }
+      __typename
+    }
+    skills {
+      mustHave
+      skill {
+        id
+        name
+        __typename
+      }
+      __typename
+    }
+    salaries {
+      id
+      salaryType
+      salaryMode
+      maxAmount
+      minAmount
+      CurrencyCode
+      __typename
+    }
+    salaryEstimate {
+      minAmount
+      maxAmount
+      CurrencyCode
+      __typename
+    }
+    creator {
+      id
+      name
+      image
+      online
+      lastSeen
+      isHighResponseRate
+      __typename
+    }
+    creatorResponseTime
+    canUserApplyWithReason {
+      canApply
+      reason
+      __typename
+    }
+    oneTapApply {
+      isEligible
+      __typename
+    }
+    expInfo
+    traceInfo
+    __typename
+  }
+}"""
+    
     GRAPHQL_QUERY = """query searchJobsV3($data: JobSearchConditionInput!) {
   searchJobsV3(data: $data) {
     jobsInPage {
@@ -234,6 +393,61 @@ class GlintsClient:
         except (KeyError, ValueError) as e:
             logger.error(f"Error parsing Glints response: {e}")
             return None, False
+    
+    def fetch_job_detail(
+        self, 
+        job_id: str, 
+        trace_info: Optional[str] = None, 
+        source: str = "Explore"
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fetch detailed job information from Glints GraphQL API.
+        
+        Args:
+            job_id: The job ID (opportunityId)
+            trace_info: Optional trace info from search results
+            source: Source of the request (default: "Explore")
+            
+        Returns:
+            Dictionary with complete job details or None if error
+        """
+        payload = {
+            "operationName": "getJobDetailsById",
+            "variables": {
+                "opportunityId": job_id,
+                "traceInfo": trace_info or "",
+                "source": source
+            },
+            "query": self.DETAIL_QUERY
+        }
+        
+        try:
+            logger.debug(f"Fetching Glints job detail for ID: {job_id}")
+            
+            response = self.session.post(
+                f"{self.BASE_URL}?op=getJobDetailsById",
+                json=payload,
+                timeout=self.timeout
+            )
+            
+            response.raise_for_status()
+            data = response.json()
+            
+            job_detail = data.get("data", {}).get("getJobById", {})
+            
+            if not job_detail:
+                logger.warning(f"No detail data found for job {job_id}")
+                return None
+            
+            logger.debug(f"Successfully fetched detail for job {job_id}")
+            return job_detail
+            
+        except requests.RequestException as e:
+            logger.error(f"Error fetching Glints job detail {job_id}: {e}")
+            return None
+        except (KeyError, ValueError) as e:
+            logger.error(f"Error parsing Glints detail response for {job_id}: {e}")
+            return None
     
     def close(self):
         """Close the session."""
