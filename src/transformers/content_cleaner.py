@@ -30,12 +30,27 @@ class ContentCleaner:
         output = []
         seen: Set[str] = set()
 
-        for tag in soup.find_all(["h2", "p", "div"]):
+        for tag in soup.find_all(["h2", "p", "div", "ol", "ul"]):
             if tag.name == "h2":
                 text = tag.get_text().strip()
                 if text and text not in seen:
                     output.append(f"<h2>{text}</h2>")
                     seen.add(text)
+
+            elif tag.name in ["ol", "ul"]:
+                # Handle ordered and unordered lists
+                list_items = tag.find_all("li", recursive=False)
+                if list_items:
+                    list_html = f"<{tag.name}>"
+                    for li in list_items:
+                        item_text = li.get_text().strip()
+                        if item_text:
+                            list_html += f"<li>{item_text}</li>"
+                    list_html += f"</{tag.name}>"
+                    
+                    if list_html not in seen:
+                        output.append(list_html)
+                        seen.add(list_html)
 
             elif tag.name in ["p", "div"]:
                 text = tag.get_text(separator="\n").strip()
