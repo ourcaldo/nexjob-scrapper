@@ -1,0 +1,143 @@
+{
+  "jobs": [
+    {
+      "id": 15877206,
+      "slug": "asisten-pembimbing-kursus-bahasa-inggris-kumon-taman-gandaria-jakarta-selatan-3",
+      "company_id": 43216,
+      "views_count": null,
+      "company_image": "https://asset.loker.id/img/2017/04/Logo-Kumon-150x150.jpg",
+      "company_name": "Kumon Taman Gandaria",
+      "category": "Tutor / Instruktur",
+      "title": "Asisten Pembimbing Kursus Bahasa Inggris",
+      "content": "Kumon Taman Gandaria adalah sebuah lembaga kursus matematika dan bahasa Inggris. Saat ini membutuhkan karyawan untuk posisi sebagai asisten bidang bahasa Inggris yang bertugas membantu pembimbing didalam mengembangkan kemampuan bahasa Inggris siswa-siswanya.",
+      "job_description": "\u003Cp\u003EKumon Taman Gandaria adalah sebuah lembaga kursus matematika dan bahasa Inggris. Saat ini membutuhkan karyawan untuk posisi sebagai asisten bidang bahasa Inggris yang bertugas membantu pembimbing didalam mengembangkan kemampuan bahasa Inggris siswa-siswanya.\u003C/p\u003E",
+      "responsibilities": "\u003Col\u003E\u003Cli\u003EMempelajari  sistem dan semua materi yang sudah disediakan.\u003C/li\u003E\u003Cli\u003EMengamati dan membimbing siswa.\u003C/li\u003E\u003Cli\u003EMengkoreksi hasil pekerjaan siswa.\u003C/li\u003E\u003Cli\u003EMenyiapkan materi di folder siswa sesuai dengan program yang sudah dibuat.\u003C/li\u003E\u003Cli\u003EMemeriksa persediaan materi dan melakukan order jika diperlukan\u003C/li\u003E\u003Cli\u003EMembuat Laporan setiap bulan dll\u003C/li\u003E\u003C/ol\u003E",
+      "qualifications": "\u003Col\u003E\u003Cli\u003EMenyukai pendidikan dan anak-anak.\u003C/li\u003E\u003Cli\u003EMempunyai komitmen untuk bekerja dan bertanggung jawab.\u003C/li\u003E\u003Cli\u003EMempunyai kemampuan Bahasa Inggris yang baik.\u003C/li\u003E\u003Cli\u003EMempunyai kemauan untuk belajar dan semangat untuk maju.\u003C/li\u003E\u003Cli\u003EMempunyai kepribadian yang tegas tapi sabar dan menyenangkan dalam berkomunikasi.\u003C/li\u003E\u003Cli\u003EMempunyai jiwa motivator untuk membuat siswa semangat untuk belajar dan tidak mudah menyerah.\u003C/li\u003E\u003Cli\u003EBisa bekerjasama dengan sesama asisten.\u003C/li\u003E\u003C/ol\u003E",
+      "status": "publish",
+      "location": "Jakarta Selatan",
+      "job_type": "Full Time",
+      "education": "SMA / SMK / STM",
+      "level": {
+        "id": 7441,
+        "name": "Junior / Entry Level",
+        "slug": "junior-entry-level",
+        "parent_id": 0
+      },
+      "tag": {
+        "id": 93871,
+        "name": "Guru Bahasa Inggris",
+        "slug": "guru-bahasa-inggris",
+        "parent_id": 0
+      },
+      "post_date": "2025-11-12 16:52:19",
+      "published_at": "2025-11-12 16:56:37",
+      "closed_at": null,
+      "post_modified": "2025-11-12 16:56:38",
+      "need_urgent": false,
+      "isPremium": true,
+      "is_premium": true,
+      "is_from_register": false,
+      "is_hide_salary": false,
+      "gender": "Perempuan",
+      "is_remote": false,
+      "job_experience": "Fresh Graduate",
+      "job_salary": "Rp.3 – 4 Juta",
+      "salary": {
+        "id": 90930,
+        "name": "Rp.3 – 4 Juta",
+        "slug": "rp-3-4-juta"
+      },
+      "salary_min": 2300000,
+      "salary_max": 3000000,
+      "job_vacancy_type": "premium",
+      "job_location_type_id": 1,
+      "job_location_type": {
+        "id": 1,
+        "name": "Dikantor",
+        "slug": "dikantor"
+      },
+      "company_slug": "kumon-taman-gandaria",
+      "company_profile_url": "https://www.loker.id/profile/kumon-taman-gandaria",
+      "company_logo": "https://asset.loker.id/img/2017/04/Logo-Kumon-150x150.jpg",
+      "categories": [
+        {
+          "id": 6255,
+          "name": "Tutor / Instruktur",
+          "slug": "tutor-instruktur",
+          "parent": {
+            "id": 9,
+            "name": "Pendidikan Dan Pelatihan",
+            "slug": "pendidikan-pelatihan"
+          }
+        }
+      ],
+      "locations": [
+        {
+          "id": 6289,
+          "name": "Jakarta Selatan",
+          "slug": "jakarta-selatan",
+          "parent": {
+            "id": 6430,
+            "name": "DKI Jakarta",
+            "slug": "jakarta"
+          }
+        }
+      ],
+      "educations": [
+        {
+          "id": 6339,
+          "name": "SMA / SMK / STM",
+          "slug": "sma-smk-stm"
+        },
+        {
+          "id": 6340,
+          "name": "Diploma/D1/D2/D3",
+          "slug": "diploma-d1-d2-d3"
+        }
+      ],
+      "experiences": [
+        {
+          "id": 68280,
+          "name": "Fresh Graduate",
+          "slug": "fresh-graduate"
+        }
+      ],
+      "industries": [],
+      "job_skills": [
+        {
+          "id": 97,
+          "name": "Bahasa Inggris",
+          "slug": "bahasa-inggris",
+          "created_at": "2025-07-20 20:14:04",
+          "updated_at": "2025-07-20 20:14:04"
+        },
+        {
+          "id": 2973,
+          "name": "Komunikasi dan interaksi",
+          "slug": "komunikasi-dan-interaksi",
+          "created_at": "2025-07-20 20:25:36",
+          "updated_at": "2025-07-20 20:25:36"
+        }
+      ],
+      "types": [
+        {
+          "id": 7262,
+          "name": "Full Time",
+          "slug": "purna-waktu"
+        }
+      ],
+      "applied": false,
+      "offered": false,
+      "bookmarked": false,
+      "statistic": {
+        "application_count": 0,
+        "new_application_count": 0,
+        "screening_application_count": 0,
+        "phone_interview_application_count": 0,
+        "onsite_interview_application_count": 0,
+        "offer_application_count": 0,
+        "on_hold_application_count": 0,
+        "hired_application_count": 0,
+        "rejected_application_count": 0
+      }
+    }

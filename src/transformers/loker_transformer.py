@@ -112,6 +112,40 @@ class LokerTransformer:
         """
         return "Remote Working" if val else "On-site Working"
     
+    def build_job_content(self, job: Dict[str, Any]) -> str:
+        """
+        Builds comprehensive job content from Loker.id API fields.
+        
+        Args:
+            job: Job data from Loker.id API
+            
+        Returns:
+            Combined HTML content from job_description, responsibilities, and qualifications
+        """
+        parts = []
+        
+        # Add job description
+        if job.get("job_description"):
+            parts.append("<h2>Deskripsi Pekerjaan</h2>")
+            parts.append(job["job_description"])
+        
+        # Add responsibilities
+        if job.get("responsibilities"):
+            parts.append("<h2>Tanggung Jawab</h2>")
+            parts.append(job["responsibilities"])
+        
+        # Add qualifications
+        if job.get("qualifications"):
+            parts.append("<h2>Kualifikasi</h2>")
+            parts.append(job["qualifications"])
+        
+        # If no HTML fields available, use plain content field wrapped in paragraph
+        if not parts and job.get("content"):
+            parts.append(f"<p>{job['content']}</p>")
+        
+        combined_html = "\n".join(parts)
+        return self.content_cleaner.clean_html(combined_html) if combined_html else ""
+    
     def transform_job(self, job: Dict[str, Any], headers: List[str]) -> List[str]:
         """
         Transforms a job dictionary from Loker.id into a row for Google Sheets.
@@ -127,7 +161,7 @@ class LokerTransformer:
         pengalaman = self.map_experience(job.get("job_experience", ""))
         kebijakan_kerja = self.map_work_policy(job.get("is_remote", False))
         salary_min, salary_max = self.extract_salary_range(job.get("job_salary", ""))
-        content = self.content_cleaner.clean_html(job.get("content", ""))
+        content = self.build_job_content(job)
 
         tag_items = []
         if job.get("category"):
