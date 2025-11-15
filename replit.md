@@ -1,7 +1,7 @@
 # Job Scraper - Multi-Source Job Aggregation System
 
 ## Overview
-This is a production-ready Python-based web scraper built with microservice architecture that automatically collects job postings from multiple sources (Loker.id, JobStreet, and Glints) and stores them in a Google Sheets spreadsheet. The scraper runs continuously with 60-minute intervals between scraping cycles.
+This is a production-ready Python-based web scraper built with microservice architecture that automatically collects job postings from multiple sources (Loker.id, JobStreet, and Glints) and stores them in either **Google Sheets** or **Supabase (PostgreSQL)**. The scraper runs continuously with 60-minute intervals between scraping cycles.
 
 For complete documentation, see **[README.md](README.md)**
 
@@ -21,7 +21,9 @@ src/
 │   │   ├── glints_client.py      # Glints GraphQL API client
 │   │   └── GLINTS_ORCHESTRATION.md  # Complete Glints documentation
 │   ├── linkedin/                 # LinkedIn source (future)
-│   └── sheets_client.py          # Shared Google Sheets client
+│   ├── base_storage_client.py    # Storage backend abstraction
+│   ├── sheets_client.py          # Google Sheets storage backend
+│   └── supabase_client.py        # Supabase (PostgreSQL) storage backend
 ├── services/
 │   └── scraper_service.py        # Main orchestration service
 ├── transformers/
@@ -37,13 +39,15 @@ requirements.txt                  # Python dependencies
 ```
 
 ## Features
+- **Flexible Storage**: Choose between Google Sheets (simple) or Supabase (scalable database)
 - Automatic pagination until no more jobs are found (404 response)
 - Duplicate prevention by checking existing job IDs
-- Rate limiting to respect both Loker.id and Google Sheets API limits
+- Rate limiting to respect API limits
 - Data cleaning and normalization (education, salary, experience levels)
 - HTML content parsing and formatting
 - Continuous operation with 60-minute intervals
-- Optional proxy support (nexjob.py only)
+- **Status tracking** (active, filled, expired) when using Supabase
+- Optional proxy support
 
 ## Architecture Highlights
 
@@ -67,10 +71,11 @@ requirements.txt                  # Python dependencies
 - Handles HTTP requests with optional proxy support
 - Timeout and error handling
 
-**SheetsClient (clients/sheets_client.py)**
-- Google Sheets connection and authentication
-- Read/write operations with rate limiting
-- Duplicate detection via existing ID lookup
+**Storage Clients (clients/)**
+- **BaseStorageClient**: Abstract interface for storage backends
+- **SheetsClient**: Google Sheets connection and authentication, read/write with rate limiting
+- **SupabaseClient**: PostgreSQL database operations with status tracking
+- Duplicate detection via existing ID lookup across all backends
 
 **JobTransformer (transformers/job_transformer.py)**
 - Normalizes education, salary, experience, work policy
@@ -93,6 +98,27 @@ requirements.txt                  # Python dependencies
 - Handles pagination and continuous operation
 
 ## Recent Changes
+
+### 2025-11-15 - Supabase Storage Backend Support
+- **Flexible Storage Architecture**: Added support for Supabase as an alternative to Google Sheets
+  - **Storage Abstraction Layer**: Created `BaseStorageClient` interface for pluggable storage backends
+  - **Supabase Client**: Full PostgreSQL database support with automatic indexing
+  - **Status Column**: Track job lifecycle (active, filled, expired, archived) - Supabase only
+  - **Factory Pattern**: Automatic client selection based on `STORAGE_BACKEND` env variable
+- **New Components**:
+  - `base_storage_client.py`: Abstract interface for storage backends
+  - `supabase_client.py`: Supabase PostgreSQL implementation
+  - `supabase/schema.sql`: Complete database schema with indexes
+  - `supabase/README.md`: Comprehensive Supabase setup guide
+- **Environment Variables**:
+  - `STORAGE_BACKEND` - Choose "google_sheets" or "supabase" (default: google_sheets)
+  - `SUPABASE_URL` - Supabase project URL
+  - `SUPABASE_KEY` - Supabase API key
+  - `SUPABASE_SERVICE_ROLE_KEY` - Optional service role key for admin operations
+- **Updated Components**:
+  - Refactored `SheetsClient` to implement `BaseStorageClient` interface
+  - Updated `ScraperService` to use factory pattern for storage client creation
+  - Enhanced `settings.py` with storage backend validation
 
 ### 2025-11-12 - Glints Integration with Two-Step GraphQL API
 - **Complete Glints Support**: Added full integration with Glints job platform
@@ -154,8 +180,16 @@ requirements.txt                  # Python dependencies
 
 ### Environment Variables
 
-#### Required:
+#### Storage Backend (Required):
+- `STORAGE_BACKEND` - Choose "google_sheets" or "supabase" (default: google_sheets)
+
+#### Google Sheets (Required if using Google Sheets):
 - `GOOGLE_SHEETS_URL` - Full URL to the Google Sheets spreadsheet
+
+#### Supabase (Required if using Supabase):
+- `SUPABASE_URL` - Supabase project URL
+- `SUPABASE_KEY` - Supabase anon/public API key
+- `SUPABASE_SERVICE_ROLE_KEY` - Optional service role key for admin operations
 
 #### Optional - General:
 - `SERVICE_ACCOUNT_PATH` - Custom path to service account JSON (default: `src/config/service-account.json`)
