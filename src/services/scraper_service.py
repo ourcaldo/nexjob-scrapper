@@ -4,6 +4,7 @@ Job scraper service module for orchestrating the entire scraping workflow.
 
 import time
 import logging
+import threading
 import concurrent.futures
 from datetime import datetime, timedelta
 from typing import Set, Optional
@@ -72,6 +73,7 @@ class ScraperService:
         
         self.storage_client: Optional[BaseStorageClient] = None
         self.existing_ids: Set[str] = set()
+        self.lock = threading.Lock()
     
     def initialize_storage_client(self) -> bool:
         """
@@ -136,17 +138,18 @@ class ScraperService:
         try:
             job_id = str(job["id"])
             
-            if job_id in self.existing_ids:
+            with self.lock:
+                if job_id in self.existing_ids:
+                    return False
+                
+                headers = self.storage_client.get_headers()
+                row_data = self.loker_transformer.transform_job(job, headers)
+                
+                if self.storage_client.append_row(row_data):
+                    self.existing_ids.add(job_id)
+                    return True
+                
                 return False
-            
-            headers = self.storage_client.get_headers()
-            row_data = self.loker_transformer.transform_job(job, headers)
-            
-            if self.storage_client.append_row(row_data):
-                self.existing_ids.add(job_id)
-                return True
-            
-            return False
             
         except Exception as e:
             logger.error(f"Failed to process Loker.id job {job.get('id')}: {e}")
@@ -172,17 +175,18 @@ class ScraperService:
         try:
             job_id = self.jobstreet_transformer.extract_job_id(job)
             
-            if job_id in self.existing_ids:
+            with self.lock:
+                if job_id in self.existing_ids:
+                    return False
+                
+                headers = self.storage_client.get_headers()
+                row_data = self.jobstreet_transformer.transform_job(job, headers)
+                
+                if self.storage_client.append_row(row_data):
+                    self.existing_ids.add(job_id)
+                    return True
+                
                 return False
-            
-            headers = self.storage_client.get_headers()
-            row_data = self.jobstreet_transformer.transform_job(job, headers)
-            
-            if self.storage_client.append_row(row_data):
-                self.existing_ids.add(job_id)
-                return True
-            
-            return False
             
         except Exception as e:
             logger.error(f"Failed to process JobStreet job {job.get('id')}: {e}")
@@ -207,20 +211,21 @@ class ScraperService:
         try:
             job_id = str(job.get("id", ""))
             
-            if job_id in self.existing_ids:
+            with self.lock:
+                if job_id in self.existing_ids:
+                    return False
+                
+                headers = self.storage_client.get_headers()
+                row_data = self.glints_transformer.transform_job(job, headers)
+                
+                if row_data is None:
+                    return False
+                
+                if self.storage_client.append_row(row_data):
+                    self.existing_ids.add(job_id)
+                    return True
+                
                 return False
-            
-            headers = self.storage_client.get_headers()
-            row_data = self.glints_transformer.transform_job(job, headers)
-            
-            if row_data is None:
-                return False
-            
-            if self.storage_client.append_row(row_data):
-                self.existing_ids.add(job_id)
-                return True
-            
-            return False
             
         except Exception as e:
             logger.error(f"Failed to process Glints job {job.get('id')}: {e}")
@@ -428,6 +433,95 @@ class ScraperService:
         logger.info(f"Glints scraping complete. Total {total_new_jobs} new jobs added")
         return total_new_jobs
     
+    def loker_worker(self) -> None:
+        """
+        Independent worker thread for Loker.id that runs on its own schedule.
+        Continuously scrapes Loker.id and sleeps based on its own timing.
+        """
+        logger.info("[Loker Worker] Starting independent Loker.id worker thread")
+        
+        while True:
+            start_time = datetime.now()
+            logger.info(f"[Loker Worker] Starting Loker.id scraping at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            try:
+                new_jobs = self.scrape_loker_all_pages()
+                logger.info(f"[Loker Worker] Loker.id scraping completed. Added {new_jobs} new jobs")
+            except Exception as e:
+                logger.error(f"[Loker Worker] Error during Loker.id scraping: {e}", exc_info=True)
+            
+            end_time = datetime.now()
+            elapsed = (end_time - start_time).total_seconds()
+            sleep_time = max(self.settings.scrape_interval_seconds - elapsed, 0)
+            
+            next_run = end_time + timedelta(seconds=sleep_time)
+            logger.info(
+                f"[Loker Worker] Next Loker.id run in {sleep_time/60:.1f} minutes "
+                f"at {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            
+            time.sleep(sleep_time)
+    
+    def jobstreet_worker(self) -> None:
+        """
+        Independent worker thread for JobStreet that runs on its own schedule.
+        Continuously scrapes JobStreet and sleeps based on its own timing.
+        """
+        logger.info("[JobStreet Worker] Starting independent JobStreet worker thread")
+        
+        while True:
+            start_time = datetime.now()
+            logger.info(f"[JobStreet Worker] Starting JobStreet scraping at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            try:
+                max_pages = self.settings.max_pages_jobstreet if self.settings.max_pages_jobstreet > 0 else 999999
+                new_jobs = self.scrape_jobstreet_all_pages(max_pages=max_pages)
+                logger.info(f"[JobStreet Worker] JobStreet scraping completed. Added {new_jobs} new jobs")
+            except Exception as e:
+                logger.error(f"[JobStreet Worker] Error during JobStreet scraping: {e}", exc_info=True)
+            
+            end_time = datetime.now()
+            elapsed = (end_time - start_time).total_seconds()
+            sleep_time = max(self.settings.scrape_interval_seconds - elapsed, 0)
+            
+            next_run = end_time + timedelta(seconds=sleep_time)
+            logger.info(
+                f"[JobStreet Worker] Next JobStreet run in {sleep_time/60:.1f} minutes "
+                f"at {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            
+            time.sleep(sleep_time)
+    
+    def glints_worker(self) -> None:
+        """
+        Independent worker thread for Glints that runs on its own schedule.
+        Continuously scrapes Glints and sleeps based on its own timing.
+        """
+        logger.info("[Glints Worker] Starting independent Glints worker thread")
+        
+        while True:
+            start_time = datetime.now()
+            logger.info(f"[Glints Worker] Starting Glints scraping at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            try:
+                max_pages = self.settings.max_pages_glints if self.settings.max_pages_glints > 0 else 999999
+                new_jobs = self.scrape_glints_all_pages(max_pages=max_pages)
+                logger.info(f"[Glints Worker] Glints scraping completed. Added {new_jobs} new jobs")
+            except Exception as e:
+                logger.error(f"[Glints Worker] Error during Glints scraping: {e}", exc_info=True)
+            
+            end_time = datetime.now()
+            elapsed = (end_time - start_time).total_seconds()
+            sleep_time = max(self.settings.scrape_interval_seconds - elapsed, 0)
+            
+            next_run = end_time + timedelta(seconds=sleep_time)
+            logger.info(
+                f"[Glints Worker] Next Glints run in {sleep_time/60:.1f} minutes "
+                f"at {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            
+            time.sleep(sleep_time)
+    
     def run_once_parallel(self) -> int:
         """
         Execute a single scraping run for enabled sources in parallel mode.
@@ -550,6 +644,10 @@ class ScraperService:
     def run_continuous(self) -> None:
         """
         Run the scraper continuously with configured intervals.
+        
+        Behavior depends on SCRAPE_MODE:
+        - sequential: Runs all enabled sources one after another, then sleeps
+        - parallel: Spawns independent worker threads for each source that run on their own schedules
         """
         proxies = self.settings.get_proxies()
         if proxies:
@@ -557,21 +655,60 @@ class ScraperService:
         else:
             logger.warning("No proxy configured - using direct connection")
         
-        while True:
-            start_time = datetime.now()
-            logger.info(f"Starting scraping at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        if self.settings.scrape_mode == "parallel":
+            logger.info("Starting PARALLEL mode with independent workers for each source")
             
-            try:
-                self.run_once()
-            except Exception as e:
-                logger.error(f"Error during scraping: {e}", exc_info=True)
+            if not self.initialize_storage_client():
+                logger.error("Failed to initialize storage client")
+                return
             
-            # Calculate sleep time
-            end_time = datetime.now()
-            elapsed = (end_time - start_time).total_seconds()
-            sleep_time = max(self.settings.scrape_interval_seconds - elapsed, 0)
+            worker_threads = []
             
-            next_run = end_time + timedelta(seconds=sleep_time)
-            logger.info(f"Next run in {sleep_time/60:.1f} minutes at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+            if self.settings.enable_loker:
+                logger.info("Launching independent Loker.id worker thread...")
+                loker_thread = threading.Thread(target=self.loker_worker, daemon=True, name="LokerWorker")
+                loker_thread.start()
+                worker_threads.append(loker_thread)
             
-            time.sleep(sleep_time)
+            if self.settings.enable_jobstreet:
+                logger.info("Launching independent JobStreet worker thread...")
+                jobstreet_thread = threading.Thread(target=self.jobstreet_worker, daemon=True, name="JobStreetWorker")
+                jobstreet_thread.start()
+                worker_threads.append(jobstreet_thread)
+            
+            if self.settings.enable_glints:
+                logger.info("Launching independent Glints worker thread...")
+                glints_thread = threading.Thread(target=self.glints_worker, daemon=True, name="GlintsWorker")
+                glints_thread.start()
+                worker_threads.append(glints_thread)
+            
+            if not worker_threads:
+                logger.error("No job sources enabled! Check your .env configuration.")
+                return
+            
+            logger.info(f"Successfully launched {len(worker_threads)} independent worker threads")
+            logger.info("Each source will run on its own schedule. Press Ctrl+C to stop.")
+            
+            for thread in worker_threads:
+                thread.join()
+        
+        else:
+            logger.info("Starting SEQUENTIAL mode")
+            
+            while True:
+                start_time = datetime.now()
+                logger.info(f"Starting scraping at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                
+                try:
+                    self.run_once()
+                except Exception as e:
+                    logger.error(f"Error during scraping: {e}", exc_info=True)
+                
+                end_time = datetime.now()
+                elapsed = (end_time - start_time).total_seconds()
+                sleep_time = max(self.settings.scrape_interval_seconds - elapsed, 0)
+                
+                next_run = end_time + timedelta(seconds=sleep_time)
+                logger.info(f"Next run in {sleep_time/60:.1f} minutes at {next_run.strftime('%Y-%m-%d %H:%M:%S')}")
+                
+                time.sleep(sleep_time)
