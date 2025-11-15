@@ -10,7 +10,9 @@ from src.config.settings import Settings
 from src.clients.loker.loker_client import LokerClient
 from src.clients.jobstreet.jobstreet_client import JobStreetClient
 from src.clients.glints.glints_client import GlintsClient
+from src.clients.base_storage_client import BaseStorageClient
 from src.clients.sheets_client import SheetsClient
+from src.clients.supabase_client import SupabaseClient
 from src.transformers.loker_transformer import LokerTransformer
 from src.transformers.jobstreet_transformer import JobStreetTransformer
 from src.transformers.glints_transformer import GlintsTransformer
@@ -67,12 +69,12 @@ class ScraperService:
         self.jobstreet_transformer = JobStreetTransformer()
         self.glints_transformer = GlintsTransformer()
         
-        self.sheets_client = None
+        self.storage_client: BaseStorageClient = None
         self.existing_ids: Set[str] = set()
     
-    def initialize_sheets_client(self) -> bool:
+    def initialize_storage_client(self) -> bool:
         """
-        Initialize and connect to Google Sheets.
+        Initialize and connect to storage backend (Google Sheets or Supabase).
         
         Returns:
             True if successful, False otherwise
@@ -80,24 +82,40 @@ class ScraperService:
         try:
             self.settings.validate()
             
-            credentials_dict = self.settings.load_service_account_credentials()
+            if self.settings.storage_backend == "google_sheets":
+                logger.info("Using Google Sheets storage backend")
+                credentials_dict = self.settings.load_service_account_credentials()
+                
+                self.storage_client = SheetsClient(
+                    credentials_dict=credentials_dict,
+                    sheet_url=self.settings.google_sheets_url,
+                    worksheet_name=self.settings.google_sheets_worksheet,
+                    rate_limiter=self.rate_limiter
+                )
             
-            self.sheets_client = SheetsClient(
-                credentials_dict=credentials_dict,
-                sheet_url=self.settings.google_sheets_url,
-                worksheet_name=self.settings.google_sheets_worksheet,
-                rate_limiter=self.rate_limiter
-            )
+            elif self.settings.storage_backend == "supabase":
+                logger.info("Using Supabase storage backend")
+                api_key = self.settings.supabase_service_role_key or self.settings.supabase_key
+                
+                self.storage_client = SupabaseClient(
+                    supabase_url=self.settings.supabase_url,
+                    supabase_key=api_key,
+                    table_name="job_scraper"
+                )
             
-            if not self.sheets_client.connect():
-                logger.error("Failed to connect to Google Sheets")
+            else:
+                logger.error(f"Unknown storage backend: {self.settings.storage_backend}")
                 return False
             
-            self.existing_ids = self.sheets_client.get_existing_ids()
+            if not self.storage_client.connect():
+                logger.error(f"Failed to connect to {self.settings.storage_backend}")
+                return False
+            
+            self.existing_ids = self.storage_client.get_existing_ids()
             return True
             
         except Exception as e:
-            logger.error(f"Error initializing sheets client: {e}")
+            logger.error(f"Error initializing storage client: {e}")
             return False
     
     def process_loker_job(self, job: dict) -> bool:
@@ -110,8 +128,8 @@ class ScraperService:
         Returns:
             True if job was added, False if duplicate or error
         """
-        if not self.sheets_client:
-            logger.error("Sheets client not initialized")
+        if not self.storage_client:
+            logger.error("Storage client not initialized")
             return False
             
         try:
@@ -120,10 +138,10 @@ class ScraperService:
             if job_id in self.existing_ids:
                 return False
             
-            headers = self.sheets_client.get_headers()
+            headers = self.storage_client.get_headers()
             row_data = self.loker_transformer.transform_job(job, headers)
             
-            if self.sheets_client.append_row(row_data):
+            if self.storage_client.append_row(row_data):
                 self.existing_ids.add(job_id)
                 return True
             
@@ -146,8 +164,8 @@ class ScraperService:
         Returns:
             True if job was added, False if duplicate or error
         """
-        if not self.sheets_client:
-            logger.error("Sheets client not initialized")
+        if not self.storage_client:
+            logger.error("Storage client not initialized")
             return False
             
         try:
@@ -156,10 +174,10 @@ class ScraperService:
             if job_id in self.existing_ids:
                 return False
             
-            headers = self.sheets_client.get_headers()
+            headers = self.storage_client.get_headers()
             row_data = self.jobstreet_transformer.transform_job(job, headers)
             
-            if self.sheets_client.append_row(row_data):
+            if self.storage_client.append_row(row_data):
                 self.existing_ids.add(job_id)
                 return True
             
@@ -181,7 +199,7 @@ class ScraperService:
         Returns:
             True if job was added, False if duplicate, closed, or error
         """
-        if not self.sheets_client:
+        if not self.storage_client:
             logger.error("Sheets client not initialized")
             return False
             
@@ -191,13 +209,13 @@ class ScraperService:
             if job_id in self.existing_ids:
                 return False
             
-            headers = self.sheets_client.get_headers()
+            headers = self.storage_client.get_headers()
             row_data = self.glints_transformer.transform_job(job, headers)
             
             if row_data is None:
                 return False
             
-            if self.sheets_client.append_row(row_data):
+            if self.storage_client.append_row(row_data):
                 self.existing_ids.add(job_id)
                 return True
             
@@ -423,7 +441,7 @@ class ScraperService:
         """
         logger.info("Starting scraping run...")
         
-        if not self.initialize_sheets_client():
+        if not self.initialize_storage_client():
             logger.error("Failed to initialize sheets client")
             return 0
         

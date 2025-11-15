@@ -7,11 +7,12 @@ from typing import List, Set, Optional, Dict, Any
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from src.utils.rate_limiter import RateLimiter
+from src.clients.base_storage_client import BaseStorageClient
 
 logger = logging.getLogger(__name__)
 
 
-class SheetsClient:
+class SheetsClient(BaseStorageClient):
     """Client for interacting with Google Sheets."""
     
     def __init__(
@@ -116,3 +117,11 @@ class SheetsClient:
             List of header column names
         """
         return self.headers
+    
+    def disconnect(self) -> None:
+        """
+        Close connection to Google Sheets.
+        
+        Note: Google Sheets API doesn't require explicit disconnection.
+        """
+        logger.info("Disconnecting from Google Sheets (no-op)")

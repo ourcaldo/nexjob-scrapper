@@ -17,6 +17,8 @@ class Settings:
     """Application settings and configuration."""
     
     def __init__(self):
+        self.storage_backend: str = os.getenv("STORAGE_BACKEND", "google_sheets").lower()
+        
         self.proxy_username: str = os.getenv("PROXY_USERNAME", "")
         self.proxy_password: str = os.getenv("PROXY_PASSWORD", "")
         self.proxy_host: str = os.getenv("PROXY_HOST", "la.residential.rayobyte.com")
@@ -29,6 +31,10 @@ class Settings:
         
         self.google_sheets_url: str = os.getenv("GOOGLE_SHEETS_URL", "")
         self.google_sheets_worksheet: str = os.getenv("GOOGLE_SHEETS_WORKSHEET", "Jobs")
+        
+        self.supabase_url: str = os.getenv("SUPABASE_URL", "")
+        self.supabase_key: str = os.getenv("SUPABASE_KEY", "")
+        self.supabase_service_role_key: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
         
         self.enable_loker: bool = os.getenv("ENABLE_LOKER", "true").lower() == "true"
         self.enable_jobstreet: bool = os.getenv("ENABLE_JOBSTREET", "false").lower() == "true"
@@ -88,13 +94,26 @@ class Settings:
         Raises:
             ValueError: If required configuration is missing
         """
-        if not Path(self.service_account_path).exists():
-            raise FileNotFoundError(
-                f"Service account file not found: {self.service_account_path}\n"
-                f"Please place your service-account.json file in the config directory."
+        if self.storage_backend not in ["google_sheets", "supabase"]:
+            raise ValueError(
+                f"Invalid STORAGE_BACKEND: {self.storage_backend}. "
+                "Must be 'google_sheets' or 'supabase'"
             )
-        if not self.google_sheets_url:
-            raise ValueError("GOOGLE_SHEETS_URL environment variable not set")
+        
+        if self.storage_backend == "google_sheets":
+            if not Path(self.service_account_path).exists():
+                raise FileNotFoundError(
+                    f"Service account file not found: {self.service_account_path}\n"
+                    f"Please place your service-account.json file in the config directory."
+                )
+            if not self.google_sheets_url:
+                raise ValueError("GOOGLE_SHEETS_URL environment variable not set")
+        
+        elif self.storage_backend == "supabase":
+            if not self.supabase_url:
+                raise ValueError("SUPABASE_URL environment variable not set")
+            if not self.supabase_key:
+                raise ValueError("SUPABASE_KEY environment variable not set")
         
         if not any([self.enable_loker, self.enable_jobstreet, self.enable_glints, self.enable_linkedin]):
             raise ValueError(

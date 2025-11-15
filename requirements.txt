@@ -9,3 +9,4 @@ python-dotenv
 python-dotenv
 beautifulsoup4
 python-dotenv
+supabase
