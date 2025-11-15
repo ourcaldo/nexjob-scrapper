@@ -122,7 +122,30 @@ Choose the storage solution that fits your needs:
 - Real-time updates and API access
 - Automatic backups
 
-### 4. **Duplicate Prevention**
+### 4. **Parallel Execution Mode**
+Choose how to scrape multiple job sources:
+
+**Sequential Mode (Default - Safer)**
+- Sources scraped one after another (A → B → C)
+- Lower resource usage
+- Easier to debug
+- Recommended for beginners
+
+**Parallel Mode (Faster)**
+- All enabled sources scraped simultaneously (A + B + C)
+- 2-3x faster execution
+- Higher resource usage
+- Uses ThreadPoolExecutor with up to 3 concurrent threads
+- Thread-safe duplicate prevention
+- Recommended for production with stable configuration
+
+**Configuration:**
+```bash
+# .env file
+SCRAPE_MODE=sequential  # or "parallel"
+```
+
+### 5. **Duplicate Prevention**
 - Fetches existing job IDs from storage on startup
 - Maintains in-memory set for fast lookups
 - Skips jobs that already exist (by ID)
@@ -551,12 +574,21 @@ python main.py
 ```
 
 The scraper will:
-1. Connect to Google Sheets
+1. Connect to your storage backend (Google Sheets or Supabase)
 2. Load existing job IDs (for duplicate detection)
-3. Scrape all pages from Loker.id
-4. Add new jobs to the sheet
-5. Wait 60 minutes (configurable)
+3. Scrape from all enabled sources (sequential or parallel mode)
+4. Add new jobs to storage
+5. Wait for configured interval (default: 60 minutes)
 6. Repeat indefinitely
+
+**Execution Modes:**
+- **Sequential** (default): Sources scraped one after another
+  - Loker.id → JobStreet → Glints
+- **Parallel**: All sources scraped simultaneously
+  - Loker.id + JobStreet + Glints at the same time
+  - 2-3x faster execution
+  
+To enable parallel mode, set `SCRAPE_MODE=parallel` in your `.env` file.
 
 ### Stopping the Scraper
 
@@ -689,8 +721,20 @@ self.scrape_interval_seconds: int = 7200  # 2 hours
 
 | **Variable** | **Required** | **Default** | **Description** |
 |-------------|-------------|-------------|-----------------|
-| `GOOGLE_SHEETS_URL` | ✅ Yes | - | Full URL to Google Sheet |
-| `SERVICE_ACCOUNT_PATH` | ❌ No | `src/config/service-account.json` | Path to credentials file |
+| `STORAGE_BACKEND` | ❌ No | `google_sheets` | Storage backend ("google_sheets" or "supabase") |
+| `GOOGLE_SHEETS_URL` | ✅ If using Sheets | - | Full URL to Google Sheet |
+| `SUPABASE_URL` | ✅ If using Supabase | - | Supabase project URL |
+| `SUPABASE_KEY` | ✅ If using Supabase | - | Supabase API key |
+| `SUPABASE_SERVICE_ROLE_KEY` | ❌ No | - | Supabase service role key (optional) |
+| `SERVICE_ACCOUNT_PATH` | ❌ No | `src/config/service-account.json` | Path to Google credentials file |
+| `SCRAPE_MODE` | ❌ No | `sequential` | Execution mode ("sequential" or "parallel") |
+| `ENABLE_LOKER` | ❌ No | `true` | Enable/disable Loker.id scraping |
+| `ENABLE_JOBSTREET` | ❌ No | `false` | Enable/disable JobStreet scraping |
+| `ENABLE_GLINTS` | ❌ No | `true` | Enable/disable Glints scraping |
+| `MAX_PAGES_LOKER` | ❌ No | `0` | Max pages for Loker.id (0 = unlimited) |
+| `MAX_PAGES_JOBSTREET` | ❌ No | `10` | Max pages for JobStreet |
+| `MAX_PAGES_GLINTS` | ❌ No | `10` | Max pages for Glints |
+| `SCRAPE_INTERVAL_SECONDS` | ❌ No | `3600` | Time between scraping cycles (seconds) |
 | `PROXY_USERNAME` | ❌ No | - | Proxy authentication username |
 | `PROXY_PASSWORD` | ❌ No | - | Proxy authentication password |
 | `PROXY_HOST` | ❌ No | `la.residential.rayobyte.com` | Proxy server hostname |
