@@ -1,6 +1,6 @@
 # Job Scraper - Multi-Source Job Aggregation System
 
-A production-ready Python-based job scraping service built with microservice architecture that automatically collects job postings from multiple sources (starting with Loker.id) and stores them in Google Sheets with intelligent data normalization and deduplication.
+A production-ready Python-based job scraping service built with microservice architecture that automatically collects job postings from multiple sources (starting with Loker.id) and stores them in **Google Sheets** or **Supabase (PostgreSQL)** with intelligent data normalization and deduplication.
 
 ---
 
@@ -9,11 +9,13 @@ A production-ready Python-based job scraping service built with microservice arc
 - [Introduction](#introduction)
 - [Architecture Overview](#architecture-overview)
 - [Key Features](#key-features)
+- [Storage Backends](#storage-backends)
 - [Project Structure](#project-structure)
 - [Technical Stack](#technical-stack)
 - [Setup Guide](#setup-guide)
 - [Environment Configuration](#environment-configuration)
 - [Google Sheets Configuration](#google-sheets-configuration)
+- [Supabase Configuration](#supabase-configuration)
 - [How to Use](#how-to-use)
 - [Data Flow & Orchestration](#data-flow--orchestration)
 - [Configuration Options](#configuration-options)
@@ -24,8 +26,9 @@ A production-ready Python-based job scraping service built with microservice arc
 
 ## 🎯 Introduction
 
-This job scraper is designed as a **scalable, multi-source aggregation system** that collects job postings from various platforms and consolidates them into a single Google Sheets database. The system features:
+This job scraper is designed as a **scalable, multi-source aggregation system** that collects job postings from various platforms and stores them in your choice of **Google Sheets** or **Supabase (PostgreSQL)**. The system features:
 
+- **Flexible Storage**: Choose between Google Sheets (simple setup) or Supabase (scalable database)
 - **Microservice Architecture**: Modular design with clear separation of concerns
 - **Multi-Source Ready**: Easily extensible to support LinkedIn, Indeed, JobStreet, etc.
 - **Intelligent Data Normalization**: Standardizes education levels, salary ranges, and experience requirements
@@ -33,6 +36,7 @@ This job scraper is designed as a **scalable, multi-source aggregation system** 
 - **Rate Limiting**: Built-in protection against API quota violations
 - **HTML Content Cleaning**: Converts messy job descriptions into clean, structured HTML
 - **Continuous Operation**: Runs 24/7 with configurable scraping intervals
+- **Status Tracking**: Track job posting lifecycle (active, filled, expired, etc.) when using Supabase
 
 ### Current Sources
 - ✅ **Loker.id** - Fully implemented with 20 data points per job
@@ -53,7 +57,9 @@ This job scraper is designed as a **scalable, multi-source aggregation system** 
 |--------------|-------------------|------------------|
 | **Settings** | Configuration management | Load credentials, validate config, manage env vars |
 | **LokerClient** | API interaction | Fetch job listings, handle pagination, proxy support |
+| **StorageClient** | Data persistence (abstraction) | Google Sheets or Supabase backend for storing jobs |
 | **SheetsClient** | Google Sheets I/O | Authentication, read/write operations, duplicate check |
+| **SupabaseClient** | Supabase I/O | Database connection, SQL operations, duplicate check |
 | **JobTransformer** | Data normalization | Map education, salary, experience to standard formats |
 | **ContentCleaner** | HTML processing | Clean job descriptions, format lists, remove duplicates |
 | **RateLimiter** | API quota management | Track requests, enforce limits, automatic delays |
@@ -68,10 +74,12 @@ Designed from the ground up to support multiple job platforms:
 
 ```
 src/clients/
-├── loker/               # Loker.id implementation
-├── linkedin/            # Ready for LinkedIn integration
-├── indeed/              # Ready for Indeed integration
-└── sheets_client.py     # Shared Google Sheets client
+├── loker/                  # Loker.id implementation
+├── linkedin/               # Ready for LinkedIn integration
+├── indeed/                 # Ready for Indeed integration
+├── base_storage_client.py  # Storage backend abstraction
+├── sheets_client.py        # Google Sheets storage backend
+└── supabase_client.py      # Supabase (PostgreSQL) storage backend
 ```
 
 ### 2. **Intelligent Data Normalization**
@@ -97,12 +105,29 @@ src/clients/
 "15-20 Tahun"    → "Lebih dari 10 Tahun"
 ```
 
-### 3. **Duplicate Prevention**
-- Fetches existing job IDs from Google Sheets on startup
+### 3. **Flexible Storage Backends**
+Choose the storage solution that fits your needs:
+
+**Google Sheets**
+- Quick setup, no database required
+- Great for small to medium datasets (< 10,000 jobs)
+- Easy to view and share
+- Manual data manipulation with spreadsheet tools
+
+**Supabase (PostgreSQL)**
+- Scalable for large datasets (100,000+ jobs)
+- Advanced SQL queries and analytics
+- Built-in indexing for fast searches
+- **Status tracking** (active, filled, expired, etc.)
+- Real-time updates and API access
+- Automatic backups
+
+### 4. **Duplicate Prevention**
+- Fetches existing job IDs from storage on startup
 - Maintains in-memory set for fast lookups
 - Skips jobs that already exist (by ID)
 
-### 4. **HTML Content Cleaning**
+### 5. **HTML Content Cleaning**
 Converts messy job descriptions into clean, structured HTML:
 
 **Input:**
@@ -125,15 +150,56 @@ Converts messy job descriptions into clean, structured HTML:
 </ol>
 ```
 
-### 5. **Rate Limiting Protection**
+### 6. **Rate Limiting Protection**
 ```python
-Google Sheets API Quotas:
+Google Sheets API Quotas (when using Google Sheets):
 - Read: 300 requests/minute
 - Write: 60 requests/minute
 - Total: 500 requests/100 seconds
 
 Automatic enforcement with delays when limits approached
 ```
+
+---
+
+## 💾 Storage Backends
+
+The Job Scraper supports two storage backends. Choose the one that best fits your needs:
+
+### Comparison Table
+
+| Feature | **Google Sheets** | **Supabase** |
+|---------|------------------|--------------|
+| **Setup Complexity** | Easy (service account + spreadsheet) | Moderate (Supabase account + SQL setup) |
+| **Best For** | Small projects, quick demos, sharing data | Production, large datasets, analytics |
+| **Scalability** | Up to ~10,000 rows | 100,000+ rows easily |
+| **Query Performance** | Slower for large datasets | Fast with indexing |
+| **Advanced Queries** | Limited (filter, sort) | Full SQL support |
+| **Status Tracking** | ❌ Not available | ✅ Built-in status column |
+| **Cost** | Free (Google Workspace limits) | Free tier available, pay as you grow |
+| **Backup & Recovery** | Manual (version history) | Automatic (point-in-time recovery) |
+| **Real-time Updates** | Limited | ✅ Built-in subscriptions |
+| **API Access** | Google Sheets API | RESTful API + PostgreSQL |
+| **Data Export** | CSV, Excel | CSV, SQL dump, API |
+
+### When to Use Google Sheets
+
+✅ **Perfect for:**
+- Quick prototypes and demos
+- Small to medium datasets (< 10,000 jobs)
+- Teams that prefer spreadsheet interface
+- Non-technical users who need to view data
+- Projects without database infrastructure
+
+### When to Use Supabase
+
+✅ **Perfect for:**
+- Production applications
+- Large datasets (10,000+ jobs)
+- Advanced analytics and reporting
+- Integration with other services via API
+- Projects requiring status tracking (active/filled/expired)
+- Teams comfortable with SQL
 
 ---
 
@@ -373,6 +439,105 @@ internal_id     source_id       job_source      link    company_name    job_cate
 - ✅ **Duplicate prevention** - `source_id` is used to check for existing jobs
 - ✅ **Automatic mapping** - The transformer uses `headers` from row 1 to map data
 - ✅ **Flexible worksheet name** - Can be changed in code (default: "Loker.id")
+
+---
+
+## 🗄️ Supabase Configuration
+
+Supabase provides a scalable PostgreSQL database with a modern developer experience. This section covers how to set up and use Supabase as your storage backend.
+
+### Quick Setup
+
+1. **Create a Supabase Project** (5 minutes)
+   - Sign up at [supabase.com](https://supabase.com) (free tier available)
+   - Create a new project
+   - Note your project URL and API keys
+
+2. **Run the SQL Schema** (2 minutes)
+   - Go to SQL Editor in your Supabase dashboard
+   - Copy and run the SQL from `supabase/schema.sql`
+   - This creates the `job_scraper` table with all necessary columns
+
+3. **Configure Environment Variables**
+   - Set `STORAGE_BACKEND=supabase` in your `.env` file
+   - Add your Supabase URL and API key
+
+4. **Start Scraping**
+   - Run `python main.py` - the scraper will automatically use Supabase
+
+### Detailed Setup Instructions
+
+For complete setup instructions, database schema details, and advanced usage, see:
+
+**📂 [supabase/README.md](supabase/README.md)** - Comprehensive Supabase setup guide
+
+The Supabase README includes:
+- Step-by-step project creation
+- Database schema explanation
+- Status column usage guide
+- Common SQL queries
+- Troubleshooting tips
+- Migration guide from Google Sheets
+
+### Key Differences from Google Sheets
+
+**Status Column (Supabase Only)**
+
+Supabase includes a `status` column to track job lifecycle:
+- `active` - Job is currently open (default for new jobs)
+- `filled` - Position has been filled
+- `expired` - Job posting has expired
+- `inactive` - No longer active
+- `archived` - Kept for historical data
+
+**Example queries:**
+```sql
+-- Get only active jobs
+SELECT * FROM job_scraper WHERE status = 'active';
+
+-- Update job status
+UPDATE job_scraper SET status = 'filled' WHERE source_id = '12345';
+
+-- Count by status
+SELECT status, COUNT(*) FROM job_scraper GROUP BY status;
+```
+
+**Timestamps**
+
+Supabase automatically tracks:
+- `created_at` - When the job was first scraped
+- `updated_at` - Last modification time
+
+**Advanced Querying**
+
+```sql
+-- Jobs posted in the last 7 days
+SELECT * FROM job_scraper 
+WHERE created_at > NOW() - INTERVAL '7 days'
+AND status = 'active';
+
+-- High-salary tech jobs in Jakarta
+SELECT title, company_name, salary_min, salary_max
+FROM job_scraper
+WHERE city ILIKE '%Jakarta%'
+AND salary_min >= 10000000
+AND job_category ILIKE '%Technology%'
+ORDER BY created_at DESC;
+```
+
+### Environment Variables for Supabase
+
+```bash
+# Storage backend selection
+STORAGE_BACKEND=supabase
+
+# Supabase credentials (required)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-anon-key-here
+
+# Optional: Service role key for admin operations
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
 
 ---
 
