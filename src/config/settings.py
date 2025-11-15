@@ -50,6 +50,7 @@ class Settings:
         self.total_requests_per_100_seconds: int = int(os.getenv("TOTAL_REQUESTS_PER_100_SECONDS", "500"))
         
         self.scrape_interval_seconds: int = int(os.getenv("SCRAPE_INTERVAL_SECONDS", "3600"))
+        self.scrape_mode: str = os.getenv("SCRAPE_MODE", "sequential").lower()
         self.page_delay_seconds: int = int(os.getenv("PAGE_DELAY_SECONDS", "1"))
         self.request_timeout_seconds: int = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "30"))
     
@@ -98,6 +99,12 @@ class Settings:
             raise ValueError(
                 f"Invalid STORAGE_BACKEND: {self.storage_backend}. "
                 "Must be 'google_sheets' or 'supabase'"
+            )
+        
+        if self.scrape_mode not in ["sequential", "parallel"]:
+            raise ValueError(
+                f"Invalid SCRAPE_MODE: {self.scrape_mode}. "
+                "Must be 'sequential' or 'parallel'"
             )
         
         if self.storage_backend == "google_sheets":

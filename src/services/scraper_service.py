@@ -4,8 +4,9 @@ Job scraper service module for orchestrating the entire scraping workflow.
 
 import time
 import logging
+import concurrent.futures
 from datetime import datetime, timedelta
-from typing import Set
+from typing import Set, Optional
 from src.config.settings import Settings
 from src.clients.loker.loker_client import LokerClient
 from src.clients.jobstreet.jobstreet_client import JobStreetClient
@@ -69,7 +70,7 @@ class ScraperService:
         self.jobstreet_transformer = JobStreetTransformer()
         self.glints_transformer = GlintsTransformer()
         
-        self.storage_client: BaseStorageClient = None
+        self.storage_client: Optional[BaseStorageClient] = None
         self.existing_ids: Set[str] = set()
     
     def initialize_storage_client(self) -> bool:
@@ -427,6 +428,66 @@ class ScraperService:
         logger.info(f"Glints scraping complete. Total {total_new_jobs} new jobs added")
         return total_new_jobs
     
+    def run_once_parallel(self) -> int:
+        """
+        Execute a single scraping run for enabled sources in parallel mode.
+        
+        Scrapes from all enabled sources simultaneously using ThreadPoolExecutor:
+        - Loker.id (if ENABLE_LOKER=true)
+        - JobStreet (if ENABLE_JOBSTREET=true)
+        - Glints (if ENABLE_GLINTS=true)
+        
+        Returns:
+            Total number of new jobs added from all sources
+        """
+        logger.info("Starting scraping run in PARALLEL mode...")
+        
+        if not self.initialize_storage_client():
+            logger.error("Failed to initialize storage client")
+            return 0
+        
+        total_new_jobs = 0
+        enabled_sources = []
+        futures = {}
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            if self.settings.enable_loker:
+                enabled_sources.append("Loker.id")
+                logger.info("Submitting Loker.id scraping task...")
+                future = executor.submit(self.scrape_loker_all_pages)
+                futures["Loker.id"] = future
+            
+            if self.settings.enable_jobstreet:
+                enabled_sources.append("JobStreet")
+                logger.info("Submitting JobStreet scraping task...")
+                max_pages = self.settings.max_pages_jobstreet if self.settings.max_pages_jobstreet > 0 else 999999
+                future = executor.submit(self.scrape_jobstreet_all_pages, max_pages=max_pages)
+                futures["JobStreet"] = future
+            
+            if self.settings.enable_glints:
+                enabled_sources.append("Glints")
+                logger.info("Submitting Glints scraping task...")
+                max_pages = self.settings.max_pages_glints if self.settings.max_pages_glints > 0 else 999999
+                future = executor.submit(self.scrape_glints_all_pages, max_pages=max_pages)
+                futures["Glints"] = future
+            
+            if not enabled_sources:
+                logger.warning("No job sources are enabled! Check your .env configuration.")
+                return 0
+            
+            logger.info(f"All {len(enabled_sources)} source(s) are running in parallel: {', '.join(enabled_sources)}")
+            
+            for source_name, future in futures.items():
+                try:
+                    jobs_added = future.result()
+                    total_new_jobs += jobs_added
+                    logger.info(f"{source_name}: Added {jobs_added} new jobs")
+                except Exception as e:
+                    logger.error(f"Error scraping {source_name}: {e}", exc_info=True)
+        
+        logger.info(f"Parallel scraping run completed. Added {total_new_jobs} new jobs from {len(enabled_sources)} source(s)")
+        return total_new_jobs
+    
     def run_once(self) -> int:
         """
         Execute a single scraping run for enabled sources.
@@ -436,10 +497,17 @@ class ScraperService:
         - JobStreet (if ENABLE_JOBSTREET=true)
         - Glints (if ENABLE_GLINTS=true)
         
+        Execution mode is determined by SCRAPE_MODE environment variable:
+        - sequential: Scrape sources one after another (default)
+        - parallel: Scrape all sources simultaneously using threading
+        
         Returns:
             Total number of new jobs added from all sources
         """
-        logger.info("Starting scraping run...")
+        if self.settings.scrape_mode == "parallel":
+            return self.run_once_parallel()
+        
+        logger.info("Starting scraping run in SEQUENTIAL mode...")
         
         if not self.initialize_storage_client():
             logger.error("Failed to initialize sheets client")
