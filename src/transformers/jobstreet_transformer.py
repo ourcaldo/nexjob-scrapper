@@ -6,6 +6,7 @@ import uuid
 from typing import Dict, Any, List
 import re
 from src.transformers.content_cleaner import ContentCleaner
+from src.transformers.field_mappers import FieldMappers
 
 
 class JobStreetTransformer:
@@ -213,7 +214,7 @@ class JobStreetTransformer:
         company_name = self.extract_company_name(job)
         category = self.extract_category(job)
         province, city = self.extract_location(job)
-        work_type = self.extract_work_type(job)
+        raw_work_type = self.extract_work_type(job)
         work_arrangement = self.extract_work_arrangement(job)
         salary_min, salary_max = self.parse_salary(job.get("salaryLabel", ""))
         level = self.infer_job_level(job)
@@ -223,9 +224,13 @@ class JobStreetTransformer:
         if content:
             content = self.content_cleaner.clean_html(content)
         
-        pendidikan = detail.get("pendidikan", "Tanpa Minimal Pendidikan")
-        pengalaman = detail.get("pengalaman", "1-3 Tahun")
+        raw_pendidikan = detail.get("pendidikan", "")
+        raw_pengalaman = detail.get("pengalaman", "")
         gender = detail.get("gender", "Laki-laki/Perempuan")
+        
+        pendidikan = FieldMappers.normalize_education(raw_pendidikan)
+        pengalaman = FieldMappers.normalize_experience(raw_pengalaman)
+        work_type = FieldMappers.normalize_job_type(raw_work_type)
         
         tag_items = []
         if category:

@@ -4,6 +4,7 @@ Glints job data transformation module for normalizing and mapping fields.
 
 import uuid
 from typing import Dict, Any, List, Optional
+from src.transformers.field_mappers import FieldMappers
 
 logger = None
 try:
@@ -17,42 +18,16 @@ class GlintsTransformer:
     """Transforms and normalizes job data from Glints GraphQL API format."""
     
     @staticmethod
-    def map_education(education_level: str) -> str:
+    def map_experience_from_years(min_years: int, max_years: int) -> str:
         """
-        Normalizes education requirements from Glints format.
-        
-        Args:
-            education_level: Raw education value from Glints API
-                            (e.g., "DIPLOMA", "BACHELOR", "MASTER", "DOCTORATE")
-            
-        Returns:
-            Normalized education string matching our standard format
-        """
-        mapping = {
-            "HIGH_SCHOOL": "SMA/SMK",
-            "DIPLOMA": "D1-D4",
-            "BACHELOR": "S1",
-            "MASTER": "S2",
-            "DOCTORATE": "S3",
-            "PHD": "S3"
-        }
-        
-        if not education_level:
-            return "Tanpa Minimal Pendidikan"
-        
-        return mapping.get(education_level.upper(), "Tanpa Minimal Pendidikan")
-    
-    @staticmethod
-    def map_experience(min_years: int, max_years: int) -> str:
-        """
-        Normalizes experience requirements from Glints min/max years.
+        Convert min/max years to standardized experience range string.
         
         Args:
             min_years: Minimum years of experience
             max_years: Maximum years of experience
             
         Returns:
-            Normalized experience string
+            Experience range string (e.g., "3-5 Tahun")
         """
         if max_years is None or max_years == 0:
             max_years = min_years if min_years else 3
@@ -60,16 +35,7 @@ class GlintsTransformer:
         if min_years is None or min_years == 0:
             min_years = 0
         
-        avg_years = (min_years + max_years) / 2
-        
-        if avg_years <= 2:
-            return "1-3 Tahun"
-        elif avg_years <= 5:
-            return "3-5 Tahun"
-        elif avg_years <= 10:
-            return "5-10 Tahun"
-        else:
-            return "Lebih dari 10 Tahun"
+        return f"{min_years}-{max_years} Tahun"
     
     @staticmethod
     def map_work_arrangement(work_arrangement: str) -> str:
@@ -95,29 +61,6 @@ class GlintsTransformer:
         
         return mapping.get(work_arrangement.upper(), "On-site Working")
     
-    @staticmethod
-    def map_job_type(job_type: str) -> str:
-        """
-        Normalizes job type from Glints format.
-        
-        Args:
-            job_type: Raw job type value (e.g., "FULL_TIME", "PART_TIME", "CONTRACT")
-            
-        Returns:
-            Normalized job type string
-        """
-        mapping = {
-            "FULL_TIME": "Full Time",
-            "PART_TIME": "Part Time",
-            "CONTRACT": "Contract",
-            "INTERNSHIP": "Internship",
-            "FREELANCE": "Freelance"
-        }
-        
-        if not job_type:
-            return "Full Time"
-        
-        return mapping.get(job_type.upper(), "Full Time")
     
     @staticmethod
     def extract_location(job: Dict[str, Any]) -> tuple[str, str]:
@@ -404,13 +347,16 @@ class GlintsTransformer:
         province, city = self.extract_location(job)
         
         work_arrangement = self.map_work_arrangement(job.get("workArrangementOption", ""))
-        job_type = self.map_job_type(job.get("type", ""))
+        raw_job_type = job.get("type", "")
+        raw_education = job.get("educationLevel", "")
         
         min_years = job.get("minYearsOfExperience", 0)
         max_years = job.get("maxYearsOfExperience", 0)
-        experience = self.map_experience(min_years, max_years)
+        experience_range = self.map_experience_from_years(min_years, max_years)
         
-        education = self.map_education(job.get("educationLevel", ""))
+        job_type = FieldMappers.normalize_job_type(raw_job_type)
+        education = FieldMappers.normalize_education(raw_education)
+        experience = FieldMappers.normalize_experience(experience_range)
         
         salary_min, salary_max = self.extract_salary(job)
         
