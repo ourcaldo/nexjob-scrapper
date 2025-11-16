@@ -12,3 +12,9 @@ python-dotenv
 supabase
 python-dotenv
 supabase
+beautifulsoup4
+gspread
+oauth2client
+python-dotenv
+requests
+supabase
