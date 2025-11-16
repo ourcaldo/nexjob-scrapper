@@ -86,8 +86,10 @@ src/clients/
 
 **Education Levels:**
 ```
-"SMA / SMK / STM"      → "SMA/SMK"
-"Diploma/D1/D2/D3"     → "D1-D4"
+"SMA / SMK / STM"      → "SMA/SMK/Sederajat"
+"D3"                   → "D3"
+"D1-D4" (range)        → "D1" (fallback)
+"Diploma" (generic)    → "D1" (fallback)
 "Sarjana / S1"         → "S1"
 ```
 

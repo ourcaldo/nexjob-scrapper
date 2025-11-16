@@ -244,19 +244,20 @@ if job.get("status") != "OPEN":
 **Normalization Mapping:**
 ```python
 {
-    "HIGH_SCHOOL": "SMA/SMK",
-    "DIPLOMA": "D1-D4",
+    "HIGH_SCHOOL": "SMA/SMK/Sederajat",
+    "DIPLOMA": "D1",  # Generic diploma fallback
     "BACHELOR": "S1",
     "MASTER": "S2",
     "DOCTORATE": "S3",
     "PHD": "S3"
 }
-# Default: "Tanpa Minimal Pendidikan"
+# Default: "SMA/SMK/Sederajat"
 ```
 
 **Example:**
 - Input: `"BACHELOR"` → Output: `"S1"`
-- Input: `"DIPLOMA"` → Output: `"D1-D4"`
+- Input: `"DIPLOMA"` → Output: `"D1"` (generic fallback)
+- Input: `"HIGH_SCHOOL"` → Output: `"SMA/SMK/Sederajat"`
 
 ---
 

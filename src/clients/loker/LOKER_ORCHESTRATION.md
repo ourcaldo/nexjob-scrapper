@@ -125,18 +125,26 @@ Each job in the API response (`response.json()["jobs"]`) contains:
 **Normalization Mapping:**
 ```python
 {
-    "SMA / SMK / STM": "SMA/SMK",
-    "Diploma/D1/D2/D3": "D1-D4",
+    "SMA / SMK / STM": "SMA/SMK/Sederajat",
+    "D1": "D1",
+    "D2": "D2", 
+    "D3": "D3",
+    "D4": "D4",
+    "Diploma/D1/D2/D3": "D1",  # Range fallback
+    "D1-D4": "D1",              # Range fallback
+    "DIPLOMA": "D1",            # Generic fallback
     "Sarjana / S1": "S1",
     "Master / S2": "S2",
     "Doctor / S3": "S3"
 }
-# Default: "Tanpa Minimal Pendidikan"
+# Default: "SMA/SMK/Sederajat"
 ```
 
 **Example:**
+- Input: `"D3"` → Output: `"D3"` (specific level)
+- Input: `"Diploma/D1/D2/D3"` → Output: `"D1"` (range fallback)
 - Input: `"Sarjana / S1"` → Output: `"S1"`
-- Input: `"SMA / SMK / STM"` → Output: `"SMA/SMK"`
+- Input: `"SMA / SMK / STM"` → Output: `"SMA/SMK/Sederajat"`
 
 ---
 

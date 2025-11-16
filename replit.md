@@ -283,7 +283,7 @@ Each job record includes:
 - **level**: Job level (Entry, Mid, Senior, etc.)
 - **salary_min**: Minimum salary in Rupiah
 - **salary_max**: Maximum salary in Rupiah
-- **education**: Education requirement (normalized: SMA/SMK, D1-D4, S1, S2, S3)
+- **education**: Education requirement (normalized: SMA/SMK/Sederajat, D1, D2, D3, D4, S1, S2, S3; ranges like "D1-D4" fallback to D1)
 - **work_policy**: Work arrangement (Remote, On-site, Hybrid)
 - **industry**: Industry sector
 - **gender**: Gender requirement

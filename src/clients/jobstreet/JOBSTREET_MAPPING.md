@@ -47,10 +47,16 @@ keywords = {
     "S3", "DOCTOR" → "S3",
     "S2", "MASTER" → "S2",
     "S1", "SARJANA" → "S1",
-    "D1", "D2", "D3", "D4", "DIPLOMA" → "D1-D4",
-    "SMA", "SMK", "STM" → "SMA/SMK"
+    "D4" → "D4",  # Specific level
+    "D3" → "D3",  # Specific level
+    "D2" → "D2",  # Specific level
+    "D1" → "D1",  # Specific level
+    "D1-D4" (range) → "D1",  # Range fallback
+    "DIPLOMA" (generic) → "D1",  # Generic fallback
+    "SMA", "SMK", "STM" → "SMA/SMK/Sederajat"
 }
 # Search in uppercase text
+# Priority: Check for ranges first, then specific levels
 ```
 
 ### Experience Patterns
