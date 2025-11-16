@@ -134,7 +134,7 @@ All sources now output these standardized education levels:
 | D2 | **D2** |
 | D3 | **D3** |
 | D4 | **D4** |
-| D1-D4, Diploma | **D1, D2, D3, D4** |
+| D1-D4 (range), Diploma (generic) | **D1** (fallback) |
 | S1, Bachelor, Sarjana | **S1** |
 | S2, Master | **S2** |
 | S3, Doctorate, PhD | **S3** |
@@ -160,9 +160,17 @@ def normalize_education(education_input: str) -> str:
         "DOCTORATE": "S3"
     }
     
-    # Handle combined levels like "D1-D4"
-    if re.search(r'D[1-4]\s*[-/]\s*D[1-4]', edu):
-        return "D1, D2, D3, D4"
+    # Handle ranges like "D1-D4" or generic "DIPLOMA" → fallback to D1
+    if re.search(r'D[1-4]\s*[-–/]\s*D[1-4]', edu):
+        return "D1"
+    if edu == "DIPLOMA":
+        return "D1"
+    
+    # Check for specific levels (substring match)
+    if "D4" in edu: return "D4"
+    if "D3" in edu: return "D3"
+    if "D2" in edu: return "D2"
+    if "D1" in edu: return "D1"
     
     # Fuzzy matching for SMA/SMK variations
     # Default: "SMA/SMK/Sederajat"
@@ -262,10 +270,13 @@ def normalize_education(education_input: str) -> str:
 | Source | Raw Input | Normalized Output |
 |--------|-----------|-------------------|
 | Loker.id | "SMA / SMK / STM" | SMA/SMK/Sederajat |
-| Loker.id | "Diploma/D1/D2/D3" | D1, D2, D3, D4 |
+| Loker.id | "Diploma/D1/D2/D3" | D1 (fallback) |
+| Loker.id | "D3" | D3 |
 | JobStreet | "S1" | S1 |
 | Glints | "BACHELOR" | S1 |
 | Glints | "HIGH_SCHOOL" | SMA/SMK/Sederajat |
+| Any | "D1-D4" | D1 (fallback) |
+| Any | "DIPLOMA" | D1 (fallback) |
 
 ---
 

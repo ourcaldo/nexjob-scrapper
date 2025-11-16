@@ -164,7 +164,7 @@ class FieldMappers:
         - D2 → "D2"
         - D3 → "D3"
         - D4 → "D4"
-        - D1-D4 combined → "D1, D2, D3, D4"
+        - D1-D4 range or generic DIPLOMA → "D1" (fallback)
         - S1/Bachelor → "S1"
         - S2/Master → "S2"
         - S3/Doctorate → "S3"
@@ -211,23 +211,28 @@ class FieldMappers:
         if edu in direct_mapping:
             return direct_mapping[edu]
         
-        # Handle combined diploma levels like "D1-D4", "DIPLOMA/D1/D2/D3"
-        if re.search(r'D[1-4]\s*[-/]\s*D[1-4]', edu) or "DIPLOMA" in edu:
-            return "D1, D2, D3, D4"
+        # Handle diploma ranges like "D1-D4", "D1/D2/D3" → fallback to D1
+        if re.search(r'D[1-4]\s*[-–/]\s*D[1-4]', edu):
+            return "D1"
+        
+        # Handle generic "DIPLOMA" → fallback to D1
+        if edu == "DIPLOMA":
+            return "D1"
         
         # Handle SMA/SMK variations with fuzzy matching
         if re.search(r'SMA|SMK', edu):
             return "SMA/SMK/Sederajat"
         
-        # Handle specific diploma levels
-        if "D1" in edu:
-            return "D1"
-        if "D2" in edu:
-            return "D2"
-        if "D3" in edu:
-            return "D3"
+        # Handle specific diploma levels (substring matching for cases like "Diploma D3")
+        # Check in reverse order to prioritize higher levels
         if "D4" in edu:
             return "D4"
+        if "D3" in edu:
+            return "D3"
+        if "D2" in edu:
+            return "D2"
+        if "D1" in edu:
+            return "D1"
         
         # Handle bachelor's variations
         if re.search(r'S1|SARJANA|BACHELOR', edu):
