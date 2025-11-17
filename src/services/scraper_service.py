@@ -7,7 +7,7 @@ import logging
 import threading
 import concurrent.futures
 from datetime import datetime, timedelta
-from typing import Set, Optional
+from typing import Set, Tuple, Optional
 from src.config.settings import Settings
 from src.clients.loker.loker_client import LokerClient
 from src.clients.jobstreet.jobstreet_client import JobStreetClient
@@ -72,7 +72,7 @@ class ScraperService:
         self.glints_transformer = GlintsTransformer()
         
         self.storage_client: Optional[BaseStorageClient] = None
-        self.existing_ids: Set[str] = set()
+        self.existing_ids: Set[Tuple[str, str]] = set()
         self.lock = threading.Lock()
     
     def initialize_storage_client(self) -> bool:
@@ -137,16 +137,17 @@ class ScraperService:
             
         try:
             job_id = str(job["id"])
+            job_key = ("Loker.id", job_id)
             
             with self.lock:
-                if job_id in self.existing_ids:
+                if job_key in self.existing_ids:
                     return False
                 
                 headers = self.storage_client.get_headers()
                 row_data = self.loker_transformer.transform_job(job, headers)
                 
                 if self.storage_client.append_row(row_data):
-                    self.existing_ids.add(job_id)
+                    self.existing_ids.add(job_key)
                     return True
                 
                 return False
@@ -174,16 +175,17 @@ class ScraperService:
             
         try:
             job_id = self.jobstreet_transformer.extract_job_id(job)
+            job_key = ("JobStreet", job_id)
             
             with self.lock:
-                if job_id in self.existing_ids:
+                if job_key in self.existing_ids:
                     return False
                 
                 headers = self.storage_client.get_headers()
                 row_data = self.jobstreet_transformer.transform_job(job, headers)
                 
                 if self.storage_client.append_row(row_data):
-                    self.existing_ids.add(job_id)
+                    self.existing_ids.add(job_key)
                     return True
                 
                 return False
@@ -210,9 +212,10 @@ class ScraperService:
             
         try:
             job_id = str(job.get("id", ""))
+            job_key = ("Glints", job_id)
             
             with self.lock:
-                if job_id in self.existing_ids:
+                if job_key in self.existing_ids:
                     return False
                 
                 headers = self.storage_client.get_headers()
@@ -222,7 +225,7 @@ class ScraperService:
                     return False
                 
                 if self.storage_client.append_row(row_data):
-                    self.existing_ids.add(job_id)
+                    self.existing_ids.add(job_key)
                     return True
                 
                 return False
@@ -308,8 +311,9 @@ class ScraperService:
                 for job in jobs_data:
                     try:
                         job_id = self.jobstreet_transformer.extract_job_id(job)
+                        job_key = ("JobStreet", job_id)
                         
-                        if job_id in self.existing_ids:
+                        if job_key in self.existing_ids:
                             logger.debug(f"Skipping duplicate JobStreet job {job_id}")
                             continue
                         
@@ -389,7 +393,8 @@ class ScraperService:
                             logger.debug(f"Skipping Glints job {job_id} - status is {job_status}")
                             continue
                         
-                        if job_id in self.existing_ids:
+                        job_key = ("Glints", job_id)
+                        if job_key in self.existing_ids:
                             logger.debug(f"Skipping duplicate Glints job {job_id}")
                             continue
                         

@@ -3,7 +3,7 @@ Supabase client module for PostgreSQL storage backend.
 """
 
 import logging
-from typing import List, Set, Optional
+from typing import List, Set, Tuple, Optional
 from supabase import create_client, Client
 from src.clients.base_storage_client import BaseStorageClient
 
@@ -69,22 +69,42 @@ class SupabaseClient(BaseStorageClient):
         """
         return self.HEADERS.copy()
     
-    def get_existing_ids(self) -> Set[str]:
+    def get_existing_ids(self) -> Set[Tuple[str, str]]:
         """
-        Gets all existing job source IDs from the database.
+        Gets all existing job IDs from the database.
         
         Returns:
-            Set of existing job source IDs
+            Set of (job_source, source_id) tuples
         """
         try:
             if not self.client:
                 logger.error("Not connected to Supabase")
                 return set()
             
-            # Query all source_ids from the table
-            response = self.client.table(self.table_name).select("source_id").execute()
+            existing_ids = set()
+            page_size = 1000
+            offset = 0
             
-            existing_ids = {row["source_id"] for row in response.data if row.get("source_id")}
+            while True:
+                response = self.client.table(self.table_name)\
+                    .select("job_source, source_id")\
+                    .range(offset, offset + page_size - 1)\
+                    .execute()
+                
+                if not response.data:
+                    break
+                
+                for row in response.data:
+                    job_source = row.get("job_source")
+                    source_id = row.get("source_id")
+                    if job_source and source_id:
+                        existing_ids.add((job_source, source_id))
+                
+                if len(response.data) < page_size:
+                    break
+                
+                offset += page_size
+            
             logger.info(f"Found {len(existing_ids)} existing jobs in database")
             return existing_ids
             

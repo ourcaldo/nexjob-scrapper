@@ -6,7 +6,7 @@ This abstract base class defines the interface that all storage backends
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Set, Optional
+from typing import List, Set, Tuple, Optional
 
 
 class BaseStorageClient(ABC):
@@ -33,12 +33,12 @@ class BaseStorageClient(ABC):
         pass
     
     @abstractmethod
-    def get_existing_ids(self) -> Set[str]:
+    def get_existing_ids(self) -> Set[Tuple[str, str]]:
         """
-        Retrieve existing job source IDs for duplicate detection.
+        Retrieve existing job IDs for duplicate detection.
         
         Returns:
-            Set of source_id values already stored
+            Set of (job_source, source_id) tuples already stored
         """
         pass
     

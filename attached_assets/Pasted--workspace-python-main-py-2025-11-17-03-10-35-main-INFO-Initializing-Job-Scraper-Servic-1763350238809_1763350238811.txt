@@ -1,0 +1,25 @@
+~/workspace$ python main.py
+2025-11-17 03:10:35 - __main__ - INFO - Initializing Job Scraper Service...
+2025-11-17 03:10:35 - src.services.scraper_service - WARNING - No proxy configured - using direct connection
+2025-11-17 03:10:35 - src.services.scraper_service - INFO - Starting PARALLEL mode with independent workers for each source
+2025-11-17 03:10:35 - src.services.scraper_service - INFO - Using Supabase storage backend
+2025-11-17 03:10:36 - httpx - INFO - HTTP Request: GET https://ubspwwvwsdrlbhrxibpj.supabase.co/rest/v1/job_scraper?select=id&limit=1 "HTTP/2 200 OK"
+2025-11-17 03:10:36 - src.clients.supabase_client - INFO - Successfully connected to Supabase table: job_scraper
+2025-11-17 03:10:36 - httpx - INFO - HTTP Request: GET https://ubspwwvwsdrlbhrxibpj.supabase.co/rest/v1/job_scraper?select=source_id "HTTP/2 200 OK"
+2025-11-17 03:10:36 - src.clients.supabase_client - INFO - Found 1000 existing jobs in database
+2025-11-17 03:10:36 - src.services.scraper_service - INFO - Launching independent JobStreet worker thread...
+2025-11-17 03:10:36 - src.services.scraper_service - INFO - [JobStreet Worker] Starting independent JobStreet worker thread
+2025-11-17 03:10:36 - src.services.scraper_service - INFO - [JobStreet Worker] Starting JobStreet scraping at 2025-11-17 03:10:36
+2025-11-17 03:10:36 - src.services.scraper_service - INFO - Starting JobStreet scraping (max 999999 pages)...
+2025-11-17 03:10:36 - src.services.scraper_service - INFO - Scraping JobStreet page 1...
+2025-11-17 03:10:36 - src.clients.jobstreet.jobstreet_client - INFO - Fetching JobStreet search page 1...
+2025-11-17 03:10:36 - src.services.scraper_service - INFO - Successfully launched 1 independent worker threads
+2025-11-17 03:10:36 - src.services.scraper_service - INFO - Each source will run on its own schedule. Press Ctrl+C to stop.
+2025-11-17 03:10:36 - src.clients.jobstreet.jobstreet_client - INFO - Fetched 30 jobs from page 1/1862 (total: 55858 jobs)
+2025-11-17 03:10:37 - httpx - INFO - HTTP Request: POST https://ubspwwvwsdrlbhrxibpj.supabase.co/rest/v1/job_scraper "HTTP/2 409 Conflict"
+2025-11-17 03:10:37 - src.clients.supabase_client - ERROR - Failed to insert record: {'message': 'duplicate key value violates unique constraint "unique_source_job"', 'code': '23505', 'hint': None, 'details': 'Key (job_source, source_id)=(JobStreet, 85791607) already exists.'}
+2025-11-17 03:10:40 - httpx - INFO - HTTP Request: POST https://ubspwwvwsdrlbhrxibpj.supabase.co/rest/v1/job_scraper "HTTP/2 409 Conflict"
+2025-11-17 03:10:40 - src.clients.supabase_client - ERROR - Failed to insert record: {'message': 'duplicate key value violates unique constraint "unique_source_job"', 'code': '23505', 'hint': None, 'details': 'Key (job_source, source_id)=(JobStreet, 81897417) already exists.'}
+2025-11-17 03:10:43 - httpx - INFO - HTTP Request: POST https://ubspwwvwsdrlbhrxibpj.supabase.co/rest/v1/job_scraper "HTTP/2 409 Conflict"
+2025-11-17 03:10:43 - src.clients.supabase_client - ERROR - Failed to insert record: {'message': 'duplicate key value violates unique constraint "unique_source_job"', 'code': '23505', 'hint': None, 'details': 'Key (job_source, source_id)=(JobStreet, 85380286) already exists.'}
+^C2025-11-17 03:10:45 - __main__ - INFO - Scraper stopped by user

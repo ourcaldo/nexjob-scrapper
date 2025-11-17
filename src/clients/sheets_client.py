@@ -3,7 +3,7 @@ Google Sheets client module.
 """
 
 import logging
-from typing import List, Set, Optional, Dict, Any
+from typing import List, Set, Tuple, Optional, Dict, Any
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from src.utils.rate_limiter import RateLimiter
@@ -67,22 +67,28 @@ class SheetsClient(BaseStorageClient):
             logger.error(f"Failed to connect to Google Sheets: {e}")
             return False
     
-    def get_existing_ids(self) -> Set[str]:
+    def get_existing_ids(self) -> Set[Tuple[str, str]]:
         """
-        Gets all existing job source IDs from column B (source_id).
+        Gets all existing job IDs from the sheet.
         
         Returns:
-            Set of existing job source IDs
+            Set of (job_source, source_id) tuples
         """
         try:
             if self.rate_limiter:
                 self.rate_limiter.check("read")
             
-            # Column B is index 2 in gspread (A=1, B=2, C=3)
-            # source_id is now in column B (internal_id is column A)
-            existing_ids = self.sheet.col_values(2)[1:]  # Skip header row
+            # Column B is source_id (index 2), Column C is job_source (index 3)
+            source_ids = self.sheet.col_values(2)[1:]  # Skip header row
+            job_sources = self.sheet.col_values(3)[1:]  # Skip header row
+            
+            existing_ids = set()
+            for job_source, source_id in zip(job_sources, source_ids):
+                if job_source and source_id:
+                    existing_ids.add((job_source, source_id))
+            
             logger.info(f"Found {len(existing_ids)} existing jobs in sheet")
-            return set(existing_ids)
+            return existing_ids
             
         except Exception as e:
             logger.error(f"Error fetching existing IDs: {e}")
