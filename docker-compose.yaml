@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  job-scraper:
+    build: .
+    container_name: nexjob-scraper
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
