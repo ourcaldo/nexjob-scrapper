@@ -1,6 +1,6 @@
 # Job Scraper - Multi-Source Job Aggregation System
 
-A production-ready Python-based job scraping service built with microservice architecture that automatically collects job postings from multiple sources (starting with Loker.id) and stores them in **Google Sheets** or **Supabase (PostgreSQL)** with intelligent data normalization and deduplication.
+A production-ready Python-based job scraping service that automatically collects job postings from **4 Indonesian job boards** (Loker.id, JobStreet, Glints, Karir.com) and stores them in **Supabase (PostgreSQL)** or Google Sheets with intelligent data normalization and deduplication.
 
 ---
 
@@ -39,9 +39,11 @@ This job scraper is designed as a **scalable, multi-source aggregation system** 
 - **Status Tracking**: Track job posting lifecycle (active, filled, expired, etc.) when using Supabase
 
 ### Current Sources
-- ✅ **Loker.id** - Fully implemented with 20 data points per job
-- ✅ **JobStreet** - Fully implemented with 20 data points per job (API + HTML scraping)
-- 🔜 **LinkedIn** - Architecture ready, awaiting implementation
+- ✅ **Loker.id** - REST API, paginated, proxy supported
+- ✅ **JobStreet** - REST API + HTML detail scraping, proxy supported
+- ✅ **Glints** - GraphQL API, curl_cffi Chrome TLS impersonation (Cloudflare bypass), proxy supported
+- ✅ **Karir.com** - REST API, open (no auth, no proxy needed)
+- ⏳ **LinkedIn** - Architecture ready, not yet implemented
 
 ---
 
@@ -630,7 +632,118 @@ self.scrape_interval_seconds: int = 7200  # 2 hours
 
 ## 🔄 Data Flow & Orchestration
 
-### Complete Scraping Cycle
+### Scrape → Transform → Store Pipeline
+
+Every job goes through the same 6-step pipeline regardless of source:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ 1. FETCH (Client)                                                   │
+│    Each source has a dedicated client in src/clients/<source>/      │
+│    The client handles pagination, authentication, and HTTP details. │
+│                                                                     │
+│    Example (Karir.com):                                             │
+│    KarirClient.fetch_page(offset=0)                                 │
+│    └─→ POST https://gateway2-beta.karir.com/v2/search/opportunities │
+│    └─→ Returns: list of 20 raw job dicts                            │
+│                                                                     │
+│    KarirClient.fetch_job_detail(job_id)                             │
+│    └─→ POST https://gateway2-beta.karir.com/v1/opportunity/detail   │
+│    └─→ Returns: full detail dict with responsibilities, requirements│
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│ 2. DUPLICATE CHECK (ScraperService)                                 │
+│    job_key = ("Karir.com", "1400774")                               │
+│    if job_key in self.existing_ids → SKIP                           │
+│    └─→ existing_ids is a Set loaded from DB at startup              │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│ 3. TRANSFORM (Transformer + FieldMappers)                           │
+│    src/transformers/<source>_transformer.py                         │
+│                                                                     │
+│    Two roles work together:                                         │
+│    • Transformer  = knows the platform's data shape.               │
+│                     Extracts the right value from the right field.  │
+│    • FieldMappers = normalizes values to the universal standard.    │
+│                     ("PENUH WAKTU"   → "Full Time")                 │
+│                     ("SARJANA"       → "S1")                        │
+│                     (1 year work exp → "Junior")                    │
+│                                                                     │
+│    Real example for job id=1400774 (Karir.com):                     │
+│                                                                     │
+│    Raw API value          →  Transformer extracts  →  Final value   │
+│    ─────────────────────────────────────────────────────────────    │
+│    degrees: ["S1","D3"]   →  degrees[0] = "S1"     →  "S1"         │
+│    work_experience: 1     →  years→range→normalize →  "Junior"      │
+│    job_type: "Tidak..."   →  normalize_job_type()  →  "Full Time"   │
+│    workplace: "Tidak..."  →  _map_work_policy()    →  "On-site"     │
+│    job_functions: [...]   →  [0] as category       →  "IT"          │
+│                                                                     │
+│    Output: clean ordered list matching HEADERS column order         │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│ 4. STORE (SupabaseClient / SheetsClient)                            │
+│    storage_client.append_row(row_data)                              │
+│    └─→ Maps list → dict using HEADERS                               │
+│    └─→ INSERT into job_scraper table (Supabase) or append row       │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│ 5. TRACK                                                            │
+│    existing_ids.add(("Karir.com", "1400774"))                       │
+│    └─→ In-memory set updated — prevents re-insert this run          │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────────┐
+│ 6. SLEEP & REPEAT                                                   │
+│    time.sleep(page_delay_seconds)       ← between pages             │
+│    time.sleep(scrape_interval_seconds)  ← between full cycles       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Universal DB Schema Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `internal_id` | UUID | Generated by Python (`uuid4()`) |
+| `source_id` | VARCHAR | Original job ID from the source platform |
+| `job_source` | VARCHAR | Platform name (`Loker.id`, `Glints`, `Karir.com`, etc.) |
+| `title` | VARCHAR | Job title |
+| `company_name` | VARCHAR | Company name |
+| `link` | TEXT | URL to the original job posting |
+| `city` | VARCHAR | City extracted from platform data |
+| `province` | VARCHAR | Province (not all platforms provide this) |
+| `salary_min` | BIGINT | Min salary in IDR (0 if not disclosed) |
+| `salary_max` | BIGINT | Max salary in IDR (0 if not disclosed) |
+| `content` | TEXT | Full job description as HTML |
+| `job_type` | VARCHAR | Normalized: `Full Time`, `Part Time`, `Contract`, `Internship`, `Freelance` |
+| `work_policy` | VARCHAR | Normalized: `On-site Working`, `Remote Working`, `Hybrid Working` |
+| `education` | VARCHAR | Normalized: `SMA/SMK/Sederajat`, `D3`, `S1`, `S2`, etc. |
+| `experience` | VARCHAR | Normalized: `Entry Level`, `Junior`, `Mid Level`, `Senior`, `Lead / Manager`, `Executive` |
+| `level` | VARCHAR | Raw seniority label from the platform |
+| `job_category` | VARCHAR | Primary job function/category |
+| `industry` | VARCHAR | Company industry |
+| `gender` | VARCHAR | Gender requirement (if specified) |
+| `tags` | TEXT | Comma-separated combined tags |
+| `status` | VARCHAR | `active` by default (DB-managed) |
+
+### Source-by-Source Technical Details
+
+| Source | Protocol | Auth | Proxy | HTTP Library | Pagination |
+|---|---|---|---|---|---|
+| Loker.id | REST (GET) | None | ✅ Yes | `requests` | Page number |
+| JobStreet | REST + HTML | None | ✅ Yes | `requests` | Page number |
+| Glints | GraphQL (POST) | None | ✅ Yes | `curl_cffi` (Chrome120 TLS) | Offset |
+| Karir.com | REST (POST) | None | ❌ No | `requests` | Offset |
+
+> **Why `curl_cffi` for Glints?**
+> Glints is protected by Cloudflare, which blocks standard `requests` connections by fingerprinting TLS handshakes.
+> `curl_cffi` impersonates a real Chrome 120 browser TLS session, bypassing the block entirely.
+
+### Complete Scraping Cycle (legacy detail)
 
 ```
 1. INITIALIZATION
@@ -733,9 +846,11 @@ self.scrape_interval_seconds: int = 7200  # 2 hours
 | `ENABLE_LOKER` | ❌ No | `true` | Enable/disable Loker.id scraping |
 | `ENABLE_JOBSTREET` | ❌ No | `false` | Enable/disable JobStreet scraping |
 | `ENABLE_GLINTS` | ❌ No | `true` | Enable/disable Glints scraping |
+| `ENABLE_KARIR` | ❌ No | `true` | Enable/disable Karir.com scraping |
 | `MAX_PAGES_LOKER` | ❌ No | `0` | Max pages for Loker.id (0 = unlimited) |
 | `MAX_PAGES_JOBSTREET` | ❌ No | `10` | Max pages for JobStreet |
 | `MAX_PAGES_GLINTS` | ❌ No | `10` | Max pages for Glints |
+| `MAX_PAGES_KARIR` | ❌ No | `0` | Max pages for Karir.com (0 = unlimited) |
 | `SCRAPE_INTERVAL_SECONDS` | ❌ No | `3600` | Time between scraping cycles (seconds) |
 | `PROXY_USERNAME` | ❌ No | - | Proxy authentication username |
 | `PROXY_PASSWORD` | ❌ No | - | Proxy authentication password |
@@ -940,13 +1055,12 @@ To contribute:
 
 - [ ] Add LinkedIn integration
 - [ ] Add Indeed integration
-- [ ] Add JobStreet integration
-- [ ] Database support (PostgreSQL)
-- [ ] Web dashboard for monitoring
-- [ ] Email notifications for new jobs
-- [ ] Advanced filtering by keywords
+- [ ] Job expiry/deactivation pass (use `expires_at` fields from Karir.com and Loker.id)
+- [ ] Per-source configurable page delays
+- [ ] Web dashboard for monitoring scraping activity
+- [ ] Email/notification alerts for new jobs matching keywords
+- [ ] Advanced filtering (whitelist/blacklist by company or keywords)
 - [ ] Salary trend analytics
-- [ ] Multi-sheet support (one per source)
 
 ---
 

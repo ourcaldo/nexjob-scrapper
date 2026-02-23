@@ -12,12 +12,14 @@ from src.config.settings import Settings
 from src.clients.loker.loker_client import LokerClient
 from src.clients.jobstreet.jobstreet_client import JobStreetClient
 from src.clients.glints.glints_client import GlintsClient
+from src.clients.karir.karir_client import KarirClient
 from src.clients.base_storage_client import BaseStorageClient
 from src.clients.sheets_client import SheetsClient
 from src.clients.supabase_client import SupabaseClient
 from src.transformers.loker_transformer import LokerTransformer
 from src.transformers.jobstreet_transformer import JobStreetTransformer
 from src.transformers.glints_transformer import GlintsTransformer
+from src.transformers.karir_transformer import KarirTransformer
 from src.utils.rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -27,8 +29,9 @@ class ScraperService:
     """
     Orchestrates the job scraping workflow for multiple sources.
     
-    Coordinates between job source clients (Loker.id, JobStreet, Glints), Google Sheets client, 
-    and source-specific data transformers to scrape and store job postings.
+    Coordinates between job source clients (Loker.id, JobStreet, Glints, Karir.com),
+    storage backends (Supabase, Google Sheets), and source-specific data transformers
+    to scrape and store job postings.
     """
     
     def __init__(self, settings: Settings):
@@ -65,11 +68,16 @@ class ScraperService:
             country_code="ID",
             proxies=settings.get_proxies()
         )
+
+        self.karir_client = KarirClient(
+            timeout=settings.request_timeout_seconds
+        )
         
         # Initialize transformers (one per source)
         self.loker_transformer = LokerTransformer()
         self.jobstreet_transformer = JobStreetTransformer()
         self.glints_transformer = GlintsTransformer()
+        self.karir_transformer = KarirTransformer()
         
         self.storage_client: Optional[BaseStorageClient] = None
         self.existing_ids: Set[Tuple[str, str]] = set()
@@ -77,7 +85,7 @@ class ScraperService:
     
     def initialize_storage_client(self) -> bool:
         """
-        Initialize and connect to storage backend (Google Sheets or Supabase).
+        Initialize and connect to storage backend (Supabase or Google Sheets).
         
         Returns:
             True if successful, False otherwise
@@ -237,7 +245,43 @@ class ScraperService:
         except Exception as e:
             logger.error(f"Failed to process Glints job {job.get('id')}: {e}")
             return False
-    
+
+    def process_karir_job(self, list_job: dict, detail: dict) -> bool:
+        """
+        Process and store a single Karir.com job if it's not a duplicate.
+
+        Args:
+            list_job: Job dict from the search/list endpoint
+            detail:   Job dict from the detail endpoint
+
+        Returns:
+            True if job was added, False if duplicate or error
+        """
+        if not self.storage_client:
+            logger.error("Storage client not initialized")
+            return False
+
+        try:
+            job_id = str(list_job.get("id", ""))
+            job_key = ("Karir.com", job_id)
+
+            with self.lock:
+                if job_key in self.existing_ids:
+                    return False
+
+                headers = self.storage_client.get_headers()
+                row_data = self.karir_transformer.transform_job(list_job, detail, headers)
+
+                if self.storage_client.append_row(row_data):
+                    self.existing_ids.add(job_key)
+                    return True
+
+                return False
+
+        except Exception as e:
+            logger.error(f"Failed to process Karir.com job {list_job.get('id')}: {e}")
+            return False
+
     def scrape_loker_all_pages(self) -> int:
         """
         Scrape job listings from Loker.id.
@@ -287,7 +331,7 @@ class ScraperService:
         1. Fetches job listings from search API
         2. For each job, fetches detail page HTML
         3. Merges search data with HTML data
-        4. Transforms and stores in Google Sheets
+        4. Transforms and stores via the configured storage backend
         
         Args:
             max_pages: Maximum number of pages to scrape (default: 10 for testing)
@@ -361,7 +405,7 @@ class ScraperService:
         2. For each job, fetches detailed information via detail API
         3. Filters jobs by status === "OPEN"
         4. Combines search data with detail data
-        5. Transforms and stores in Google Sheets
+        5. Transforms and stores via the configured storage backend
         
         Args:
             max_pages: Maximum number of pages to scrape (default: 10)
@@ -441,7 +485,116 @@ class ScraperService:
         
         logger.info(f"Glints scraping complete. Total {total_new_jobs} new jobs added")
         return total_new_jobs
-    
+
+    def scrape_karir_all_pages(self, max_pages: int = 0) -> int:
+        """
+        Scrape all job listings from Karir.com using offset-based pagination.
+
+        For each job in the list:
+          1. Checks for duplicate via existing_ids
+          2. Fetches full detail from /v1/opportunity/detail
+          3. Transforms and stores via KarirTransformer
+
+        Args:
+            max_pages: Maximum number of pages to scrape (0 = unlimited)
+
+        Returns:
+            Number of new jobs added
+        """
+        total_new_jobs = 0
+        offset = 0
+        page_num = 1
+        limit = max_pages if max_pages > 0 else float('inf')
+
+        logger.info(f"Starting Karir.com scraping (max {'unlimited' if max_pages == 0 else max_pages} pages)...")
+
+        while page_num <= limit:
+            logger.info(f"Scraping Karir.com page {page_num} (offset={offset})...")
+
+            try:
+                jobs_data, has_more, total = self.karir_client.fetch_page(offset)
+
+                if not jobs_data:
+                    logger.info(f"No more data found at Karir.com offset={offset}")
+                    break
+
+                page_new_jobs = 0
+
+                for list_job in jobs_data:
+                    try:
+                        job_id = str(list_job.get("id", ""))
+                        job_key = ("Karir.com", job_id)
+
+                        if job_key in self.existing_ids:
+                            logger.debug(f"Skipping duplicate Karir.com job {job_id}")
+                            continue
+
+                        logger.debug(f"Fetching detail for Karir.com job {job_id}...")
+                        detail = self.karir_client.fetch_job_detail(int(job_id))
+
+                        if not detail:
+                            title = list_job.get("job_position", "?")
+                            company = list_job.get("company_name", "?")
+                            logger.warning(f"Could not fetch detail for Karir.com job {job_id} '{title}' at {company}, skipping")
+                            continue
+
+                        if self.process_karir_job(list_job, detail):
+                            page_new_jobs += 1
+
+                        time.sleep(0.5)
+
+                    except Exception as e:
+                        logger.error(f"Error processing Karir.com job: {e}")
+                        continue
+
+                total_new_jobs += page_new_jobs
+                logger.info(f"Karir.com page {page_num} processed. Added {page_new_jobs} new jobs")
+
+                if not has_more:
+                    logger.info("No more Karir.com pages available")
+                    break
+
+                offset += self.karir_client.PAGE_SIZE
+                page_num += 1
+                time.sleep(self.settings.page_delay_seconds)
+
+            except Exception as e:
+                logger.error(f"Error scraping Karir.com page {page_num}: {e}")
+                break
+
+        logger.info(f"Karir.com scraping complete. Total {total_new_jobs} new jobs added")
+        return total_new_jobs
+
+    def karir_worker(self) -> None:
+        """
+        Independent worker thread for Karir.com that runs on its own schedule.
+        Continuously scrapes Karir.com and sleeps based on its own timing.
+        """
+        logger.info("[Karir Worker] Starting independent Karir.com worker thread")
+
+        while True:
+            start_time = datetime.now()
+            logger.info(f"[Karir Worker] Starting Karir.com scraping at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+            try:
+                max_pages = self.settings.max_pages_karir if self.settings.max_pages_karir > 0 else 0
+                new_jobs = self.scrape_karir_all_pages(max_pages=max_pages)
+                logger.info(f"[Karir Worker] Karir.com scraping completed. Added {new_jobs} new jobs")
+            except Exception as e:
+                logger.error(f"[Karir Worker] Error during Karir.com scraping: {e}", exc_info=True)
+
+            end_time = datetime.now()
+            elapsed = (end_time - start_time).total_seconds()
+            sleep_time = max(self.settings.scrape_interval_seconds - elapsed, 0)
+
+            next_run = end_time + timedelta(seconds=sleep_time)
+            logger.info(
+                f"[Karir Worker] Next Karir.com run in {sleep_time/60:.1f} minutes "
+                f"at {next_run.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+
+            time.sleep(sleep_time)
+
     def loker_worker(self) -> None:
         """
         Independent worker thread for Loker.id that runs on its own schedule.
@@ -553,7 +706,7 @@ class ScraperService:
         enabled_sources = []
         futures = {}
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             if self.settings.enable_loker:
                 enabled_sources.append("Loker.id")
                 logger.info("Submitting Loker.id scraping task...")
@@ -573,6 +726,13 @@ class ScraperService:
                 max_pages = self.settings.max_pages_glints if self.settings.max_pages_glints > 0 else 999999
                 future = executor.submit(self.scrape_glints_all_pages, max_pages=max_pages)
                 futures["Glints"] = future
+
+            if self.settings.enable_karir:
+                enabled_sources.append("Karir.com")
+                logger.info("Submitting Karir.com scraping task...")
+                max_pages = self.settings.max_pages_karir if self.settings.max_pages_karir > 0 else 0
+                future = executor.submit(self.scrape_karir_all_pages, max_pages=max_pages)
+                futures["Karir.com"] = future
             
             if not enabled_sources:
                 logger.warning("No job sources are enabled! Check your .env configuration.")
@@ -641,6 +801,14 @@ class ScraperService:
             glints_jobs = self.scrape_glints_all_pages(max_pages=int(max_pages) if max_pages != float('inf') else 999999)
             total_new_jobs += glints_jobs
             logger.info(f"Glints: Added {glints_jobs} new jobs")
+
+        if self.settings.enable_karir:
+            enabled_sources.append("Karir.com")
+            logger.info("Scraping from Karir.com...")
+            max_pages = self.settings.max_pages_karir
+            karir_jobs = self.scrape_karir_all_pages(max_pages=max_pages)
+            total_new_jobs += karir_jobs
+            logger.info(f"Karir.com: Added {karir_jobs} new jobs")
         
         if not enabled_sources:
             logger.warning("No job sources are enabled! Check your .env configuration.")
@@ -693,6 +861,12 @@ class ScraperService:
                 glints_thread = threading.Thread(target=self.glints_worker, daemon=True, name="GlintsWorker")
                 glints_thread.start()
                 worker_threads.append(glints_thread)
+
+            if self.settings.enable_karir:
+                logger.info("Launching independent Karir.com worker thread...")
+                karir_thread = threading.Thread(target=self.karir_worker, daemon=True, name="KarirWorker")
+                karir_thread.start()
+                worker_threads.append(karir_thread)
             
             if not worker_threads:
                 logger.error("No job sources enabled! Check your .env configuration.")
