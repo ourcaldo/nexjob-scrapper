@@ -2,16 +2,13 @@
 Glints job data transformation module for normalizing and mapping fields.
 """
 
+import json
+import logging
 import uuid
 from typing import Dict, Any, List, Optional
 from src.transformers.field_mappers import FieldMappers
 
-logger = None
-try:
-    import logging
-    logger = logging.getLogger(__name__)
-except:
-    pass
+logger = logging.getLogger(__name__)
 
 
 class GlintsTransformer:
@@ -60,6 +57,30 @@ class GlintsTransformer:
             return "On-site Working"
         
         return mapping.get(work_arrangement.upper(), "On-site Working")
+
+    @staticmethod
+    def map_gender(gender: str) -> str:
+        """
+        Normalizes gender requirement from Glints API format.
+
+        Args:
+            gender: Raw gender value from Glints detail API
+                    (e.g., "MALE", "FEMALE", "MALE_FEMALE", None)
+
+        Returns:
+            Normalized gender string in Indonesian
+        """
+        mapping = {
+            "MALE": "Laki-laki",
+            "FEMALE": "Perempuan",
+            "MALE_FEMALE": "Laki-laki/Perempuan",
+            "ALL": "Laki-laki/Perempuan",
+        }
+
+        if not gender:
+            return "Laki-laki/Perempuan"
+
+        return mapping.get(gender.upper(), "Laki-laki/Perempuan")
     
     
     @staticmethod
@@ -172,7 +193,6 @@ class GlintsTransformer:
             HTML formatted description
         """
         try:
-            import json
             desc_data = json.loads(description_json)
             blocks = desc_data.get("blocks", [])
             
@@ -198,7 +218,8 @@ class GlintsTransformer:
                     html_parts.append(f"<p>{text}</p>")
             
             return "\n".join(html_parts)
-        except:
+        except Exception as e:
+            logger.warning(f"Failed to parse Glints JSON description: {e}")
             return description_json
     
     @staticmethod
@@ -216,7 +237,7 @@ class GlintsTransformer:
         """
         parts = []
         
-        detail = job.get("detail", {})
+        detail = job.get("detail") or {}
         
         if detail and detail.get("descriptionJsonString"):
             if logger:
@@ -401,7 +422,7 @@ class GlintsTransformer:
             "education": education,
             "work_policy": work_arrangement,
             "industry": industry,
-            "gender": "Laki-laki/Perempuan",
+            "gender": self.map_gender((job.get("detail") or {}).get("gender", "") or job.get("gender", "")),
             "tags": tag_combined
         }
         

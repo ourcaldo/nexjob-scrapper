@@ -138,7 +138,7 @@ class LokerTransformer:
             "job_category": job.get("category", ""),
             "title": job["title"],
             "content": content,
-            "province": job["locations"][0]["parent"]["name"] if job.get("locations") and job["locations"][0].get("parent") else "",
+            "province": job["locations"][0]["parent"].get("name", "") if job.get("locations") and job["locations"][0].get("parent") else "",
             "city": job["locations"][0]["name"] if job.get("locations") else "",
             "experience": pengalaman,
             "job_type": job_type,

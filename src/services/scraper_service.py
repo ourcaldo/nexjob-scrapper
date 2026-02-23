@@ -82,6 +82,10 @@ class ScraperService:
         Returns:
             True if successful, False otherwise
         """
+        if self.storage_client is not None:
+            logger.debug("Storage client already initialized, skipping re-initialization")
+            return True
+
         try:
             self.settings.validate()
             
@@ -659,7 +663,10 @@ class ScraperService:
             logger.info(f"Using proxy: {self.settings.proxy_username}@{self.settings.proxy_host}:{self.settings.proxy_port}")
         else:
             logger.warning("No proxy configured - using direct connection")
-        
+
+        if self.settings.enable_linkedin:
+            logger.warning("ENABLE_LINKEDIN=true but LinkedIn scraper is not yet implemented — ignoring.")
+
         if self.settings.scrape_mode == "parallel":
             logger.info("Starting PARALLEL mode with independent workers for each source")
             

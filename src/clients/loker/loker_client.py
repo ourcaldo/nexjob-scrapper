@@ -5,6 +5,7 @@ Loker.id API client module.
 import requests
 import logging
 from typing import Optional, Tuple, List, Dict, Any
+from src.utils.retry import retry_request
 
 logger = logging.getLogger(__name__)
 
@@ -43,15 +44,17 @@ class LokerClient:
         url = f"{self.base_url}/page/{page_num}?_data"
         
         try:
-            response = requests.get(
+            response = retry_request(
+                requests.get,
                 url,
                 headers=self.headers,
                 proxies=self.proxies,
-                timeout=self.timeout
+                timeout=self.timeout,
+                exceptions=(requests.exceptions.RequestException,),
             )
             
             if response.status_code == 404:
-                logger.info(f"No more pages at page {page_num}")
+                logger.info(f"Reached end of Loker.id results at page {page_num}")
                 return None, False
                 
             response.raise_for_status()
@@ -59,5 +62,5 @@ class LokerClient:
             return jobs, True
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"Failed to fetch page {page_num}: {e}")
+            logger.error(f"Failed to fetch page {page_num} after retries: {e}")
             return None, False

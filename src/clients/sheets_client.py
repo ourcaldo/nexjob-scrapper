@@ -19,7 +19,7 @@ class SheetsClient(BaseStorageClient):
         self,
         credentials_dict: Dict[str, Any],
         sheet_url: str,
-        worksheet_name: str = "Loker.id",
+        worksheet_name: str = "Jobs",
         rate_limiter: Optional[RateLimiter] = None
     ):
         """

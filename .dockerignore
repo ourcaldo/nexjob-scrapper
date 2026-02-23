@@ -1,0 +1,10 @@
+.git/
+.env
+docs/
+images/
+*.md
+uv.lock
+__pycache__/
+*.pyc
+*.pyo
+.gitignore

@@ -2,9 +2,15 @@
 Content cleaning module for HTML job descriptions.
 """
 
+import re
 import html
 from bs4 import BeautifulSoup
 from typing import Set
+
+# Matches ordered list items: "1.", "2)", "10." etc.
+_ORDERED_LINE_RE = re.compile(r'^\d+[.)\s]')
+# Matches unordered list items: "-", "•", "*"
+_BULLET_CHARS = ("-", "•", "*")
 
 
 class ContentCleaner:
@@ -62,23 +68,31 @@ class ContentCleaner:
                     continue
 
                 lines = [line.strip() for line in text.splitlines() if line.strip()]
-                is_numbered = all(
-                    line[:1].isdigit() or line.lstrip().startswith(("-", "•")) for line in lines
+
+                # Require at least 2 lines and a consistent pattern to be treated as a list.
+                # Ordered: every line must start with a digit followed by . or ) or space
+                # Unordered: every line must start with a recognised bullet character
+                is_ordered = (
+                    len(lines) >= 2
+                    and all(_ORDERED_LINE_RE.match(line) for line in lines)
+                )
+                is_unordered = (
+                    len(lines) >= 2
+                    and all(line.lstrip().startswith(_BULLET_CHARS) for line in lines)
                 )
 
                 # Format lists properly
                 block = ""
-                if is_numbered and len(lines) >= 2:
-                    if lines[0].startswith("1."):
-                        block = "<ol>" + "".join(
-                            f"<li>{line.lstrip('1234567890. ').strip()}</li>"
-                            for line in lines
-                        ) + "</ol>"
-                    else:
-                        block = "<ul>" + "".join(
-                            f"<li>{line.lstrip('-• ').strip()}</li>"
-                            for line in lines
-                        ) + "</ul>"
+                if is_ordered:
+                    block = "<ol>" + "".join(
+                        f"<li>{_ORDERED_LINE_RE.sub('', line).strip()}</li>"
+                        for line in lines
+                    ) + "</ol>"
+                elif is_unordered:
+                    block = "<ul>" + "".join(
+                        f"<li>{line.lstrip('-•* ').strip()}</li>"
+                        for line in lines
+                    ) + "</ul>"
                 else:
                     block = f"<p>{' '.join(lines)}</p>" if lines else ""
 
